@@ -1,9 +1,7 @@
 require('dotenv').config({ path: 'db.env' });
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // 👈 tambahan
 const app = express();
-
 const authRoutes = require('./routes/authRoutes');
 const rekeningRoutes = require('./routes/rekeningRoutes');
 const { sequelize } = require('./models');
@@ -15,10 +13,9 @@ const fakturRoutes = require('./routes/statusFaktur');
 const krediturRoutes = require('./routes/krediturRoutes');
 const agingHDRoutes = require('./routes/agingHDRoutes');
 
+
 app.use(cors());
 app.use(express.json());
-
-// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rekening', rekeningRoutes);
 app.use('/api/pimpinan', pimpinanRoutes);
@@ -28,15 +25,6 @@ app.use('/api/kwitansi', kwitansiRoutes);
 app.use('/api/faktur', fakturRoutes);
 app.use('/api/kreditur', krediturRoutes);
 app.use('/api', agingHDRoutes);
-
-// Serve React build 👇
-app.use(express.static(path.join(__dirname, '../frontend/build')));
-
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-});
-
-// Error handling
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
     if (!res.headersSent) {
