@@ -14,7 +14,11 @@ const krediturRoutes = require('./routes/krediturRoutes');
 const agingHDRoutes = require('./routes/agingHDRoutes');
 
 
-app.use(cors());
+app.use(cors({
+    origin: '*', // alamat frontend
+    credentials: true,               // kalau pakai cookie
+}));
+
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/rekening', rekeningRoutes);
