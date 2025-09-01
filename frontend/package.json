@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:5000",
+  "proxy": "http://192.168.1.101:5000",
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
     "@emotion/react": "^11.14.0",

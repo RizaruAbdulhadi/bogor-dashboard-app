@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
 import LoginPage from "./pages/LoginPage";
@@ -21,7 +21,7 @@ import PrivateRoute from "./components/PrivateRoute";
 function App() {
     return (
         <AuthProvider>
-            <Router>
+
                 <Routes>
                     {/* Public Route */}
                     <Route path="/" element={<LoginPage />} />
@@ -125,7 +125,7 @@ function App() {
                         }
                     />
                 </Routes>
-            </Router>
+
         </AuthProvider>
     );
 }
