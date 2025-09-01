@@ -1,4 +1,3 @@
-// index.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -18,11 +17,17 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-// Middleware
+// Middleware CORS - DIPERBAIKI
 app.use(cors({
-    origin: ["http://localhost:3000", "http://192.168.1.101:8080", "http://192.168.1.101:3000"],
-    credentials: true
+    origin: ["http://localhost:3000", "http://localhost:8080", "http://192.168.1.101:3000", "http://192.168.1.101:8080"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json());
 
 // TEST route
@@ -30,7 +35,7 @@ app.get("/", (req, res) => {
     res.send("✅ Backend API running...");
 });
 
-// LOGIN route - PERBAIKI
+// LOGIN route - DIPERBAIKI
 app.post("/api/auth/login", async (req, res) => {
     const { username, password } = req.body;
 
@@ -50,10 +55,10 @@ app.post("/api/auth/login", async (req, res) => {
             return res.json({
                 success: true,
                 message: "Login berhasil",
-                token: "generated-token", // Tambahkan token (sementara)
-                role: user.role || "user", // Pastikan kolom 'role' ada di database
+                token: "jwt-token-placeholder", // Tambahkan token
+                role: user.role || "user", // Pastikan ada kolom role di database
                 username: user.username,
-                user: user // Tetap kirim data user lengkap
+                user: user
             });
         } else {
             return res.status(401).json({ success: false, message: "Username atau password salah" });
@@ -70,7 +75,9 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
 });
 
-// Jalankan server
-app.listen(PORT, "192.168.1.101", () => {
-    console.log(`🚀 Server running on http://192.168.1.101:${PORT}`);
+// Jalankan server - DIPERBAIKI
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+    console.log(`📡 Accessible on: http://localhost:${PORT}`);
+    console.log(`🌐 Network access: http://192.168.1.101:${PORT}`);
 });

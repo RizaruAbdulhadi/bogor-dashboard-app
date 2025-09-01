@@ -6,25 +6,29 @@ function LoginPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // 🔑 Tentukan base URL untuk API
-    const API_BASE_URL =
-        process.env.REACT_APP_API_URL || "/api";
-    // kalau di-dev, set REACT_APP_API_URL=http://localhost:5000
-    // kalau di-prod (pakai nginx), otomatis "/api"
-
     const handleLogin = async (e) => {
         e.preventDefault();
         setError("");
+        setIsLoading(true);
+
         console.log("LoginPage: mulai proses login dengan username =", username);
 
         try {
-            const res = await fetch("http://192.168.1.101:5000/api/auth/login", {
+            // Gunakan URL yang sesuai dengan environment
+            const API_URL = window.location.hostname === 'localhost'
+                ? 'http://localhost:5000/api/auth/login'
+                : 'http://192.168.1.101:5000/api/auth/login';
+
+            const res = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({ username, password }),
             });
 
@@ -33,13 +37,13 @@ function LoginPage() {
             const data = await res.json();
             console.log("LoginPage: response body =", data);
 
-            if (data.success) { // ✅ Gunakan data.success bukan res.ok
-                // Simpan token & role ke localStorage
-                localStorage.setItem("token", data.token || "dummy-token");
-                localStorage.setItem("role", data.role || "user");
+            if (data.success) {
+                // Simpan data ke localStorage
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("role", data.role);
                 localStorage.setItem("user", JSON.stringify(data.user));
 
-                console.log("LoginPage: token & role disimpan ke localStorage");
+                console.log("LoginPage: data disimpan ke localStorage");
 
                 login({
                     username: data.username,
@@ -47,15 +51,15 @@ function LoginPage() {
                     userData: data.user
                 });
 
-                console.log("LoginPage: context login() dipanggil");
                 navigate("/dashboard", { replace: true });
             } else {
-                console.warn("LoginPage: login gagal dengan pesan =", data.message);
                 setError(data.message || "Login gagal");
             }
         } catch (err) {
             console.error("LoginPage: error saat login =", err);
-            setError("Network error. Pastikan backend berjalan.");
+            setError("Koneksi gagal. Pastikan server backend berjalan.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -66,7 +70,9 @@ function LoginPage() {
                     Bogor Dashboard Login
                 </h2>
                 {error && (
-                    <div className="text-red-600 text-sm text-center mb-4">{error}</div>
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+                        {error}
+                    </div>
                 )}
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
@@ -77,6 +83,7 @@ function LoginPage() {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
+                            disabled={isLoading}
                         />
                     </div>
                     <div>
@@ -87,13 +94,15 @@ function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            disabled={isLoading}
                         />
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-indigo-500 text-white py-2 rounded-md hover:bg-indigo-600 transition duration-300"
+                        className="w-full bg-indigo-500 text-white py-2 rounded-md hover:bg-indigo-600 transition duration-300 disabled:opacity-50"
+                        disabled={isLoading}
                     >
-                        Login
+                        {isLoading ? "Loading..." : "Login"}
                     </button>
                 </form>
                 <p className="mt-4 text-xs text-center text-gray-500">
