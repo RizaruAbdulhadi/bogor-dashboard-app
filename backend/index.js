@@ -41,7 +41,7 @@ const PORT = process.env.PORT || 5000;
 sequelize.authenticate()
     .then(() => {
         console.log('Connected to database');
-        app.listen(PORT, () => {
+        app.listen(PORT, "0.0.0.0", () => {
             console.log(`Server running on http://localhost:${PORT}`);
         });
     })
