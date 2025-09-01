@@ -7,8 +7,14 @@ function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
-    const { login } = useContext(AuthContext); // ✅ ambil fungsi login dari context
+    const { login } = useContext(AuthContext);
     const navigate = useNavigate();
+
+    // 🔑 Tentukan base URL untuk API
+    const API_BASE_URL =
+        process.env.REACT_APP_API_URL || "/api";
+    // kalau di-dev, set REACT_APP_API_URL=http://localhost:5000
+    // kalau di-prod (pakai nginx), otomatis "/api"
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -16,7 +22,7 @@ function LoginPage() {
         console.log("LoginPage: mulai proses login dengan username =", username);
 
         try {
-            const res = await fetch("http://localhost:5000/api/auth/login", {
+            const res = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
@@ -33,12 +39,9 @@ function LoginPage() {
                 localStorage.setItem("role", data.role);
                 console.log("LoginPage: token & role disimpan ke localStorage");
 
-                // ✅ update context pakai login()
                 login({ username: data.username, role: data.role });
                 console.log("LoginPage: context login() dipanggil");
 
-                // Redirect ke dashboard
-                console.log("LoginPage: navigasi ke /dashboard");
                 navigate("/dashboard", { replace: true });
             } else {
                 console.warn("LoginPage: login gagal dengan pesan =", data.message);
