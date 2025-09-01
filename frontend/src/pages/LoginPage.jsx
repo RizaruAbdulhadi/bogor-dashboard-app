@@ -19,10 +19,8 @@ function LoginPage() {
         console.log("LoginPage: mulai proses login dengan username =", username);
 
         try {
-            // Gunakan URL yang sesuai dengan environment
-            const API_URL = window.location.hostname === 'localhost'
-                ? 'http://localhost:5000/api/auth/login'
-                : 'http://192.168.1.101:5000/api/auth/login';
+            // ✅ GUNAKAN IP SERVER, BUKAN LOCALHOST
+            const API_URL = 'http://192.168.1.101:5000/api/auth/login';
 
             const res = await fetch(API_URL, {
                 method: "POST",
@@ -38,7 +36,6 @@ function LoginPage() {
             console.log("LoginPage: response body =", data);
 
             if (data.success) {
-                // Simpan data ke localStorage
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("role", data.role);
                 localStorage.setItem("user", JSON.stringify(data.user));
@@ -57,7 +54,7 @@ function LoginPage() {
             }
         } catch (err) {
             console.error("LoginPage: error saat login =", err);
-            setError("Koneksi gagal. Pastikan server backend berjalan.");
+            setError("Koneksi gagal. Pastikan server backend berjalan di 192.168.1.101:5000");
         } finally {
             setIsLoading(false);
         }
@@ -106,6 +103,9 @@ function LoginPage() {
                     </button>
                 </form>
                 <p className="mt-4 text-xs text-center text-gray-500">
+                    Server: 192.168.1.101:5000
+                </p>
+                <p className="mt-2 text-xs text-center text-gray-500">
                     © {new Date().getFullYear()} Bogor Dashboard. All rights reserved.
                 </p>
             </div>
