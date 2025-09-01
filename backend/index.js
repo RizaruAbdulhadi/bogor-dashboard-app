@@ -20,7 +20,7 @@ const pool = new Pool({
 
 // Middleware
 app.use(cors({
-    origin: "http://192.168.1.101:8080",
+    origin: ["http://localhost:3000", "http://192.168.1.101:8080", "http://192.168.1.101:3000"],
     credentials: true
 }));
 app.use(express.json());
@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
     res.send("✅ Backend API running...");
 });
 
-// LOGIN route
+// LOGIN route - PERBAIKI
 app.post("/api/auth/login", async (req, res) => {
     const { username, password } = req.body;
 
@@ -45,10 +45,15 @@ app.post("/api/auth/login", async (req, res) => {
         );
 
         if (result.rows.length > 0) {
+            const user = result.rows[0];
+
             return res.json({
                 success: true,
                 message: "Login berhasil",
-                user: result.rows[0],
+                token: "generated-token", // Tambahkan token (sementara)
+                role: user.role || "user", // Pastikan kolom 'role' ada di database
+                username: user.username,
+                user: user // Tetap kirim data user lengkap
             });
         } else {
             return res.status(401).json({ success: false, message: "Username atau password salah" });
@@ -66,6 +71,6 @@ app.use((err, req, res, next) => {
 });
 
 // Jalankan server
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+app.listen(PORT, "192.168.1.101", () => {
+    console.log(`🚀 Server running on http://192.168.1.101:${PORT}`);
 });

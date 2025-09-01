@@ -33,15 +33,21 @@ function LoginPage() {
             const data = await res.json();
             console.log("LoginPage: response body =", data);
 
-            if (res.ok) {
+            if (data.success) { // ✅ Gunakan data.success bukan res.ok
                 // Simpan token & role ke localStorage
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("role", data.role);
+                localStorage.setItem("token", data.token || "dummy-token");
+                localStorage.setItem("role", data.role || "user");
+                localStorage.setItem("user", JSON.stringify(data.user));
+
                 console.log("LoginPage: token & role disimpan ke localStorage");
 
-                login({ username: data.username, role: data.role });
-                console.log("LoginPage: context login() dipanggil");
+                login({
+                    username: data.username,
+                    role: data.role,
+                    userData: data.user
+                });
 
+                console.log("LoginPage: context login() dipanggil");
                 navigate("/dashboard", { replace: true });
             } else {
                 console.warn("LoginPage: login gagal dengan pesan =", data.message);
