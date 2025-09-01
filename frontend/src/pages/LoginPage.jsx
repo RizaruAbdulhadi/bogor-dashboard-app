@@ -22,7 +22,7 @@ function LoginPage() {
         console.log("LoginPage: mulai proses login dengan username =", username);
 
         try {
-            const res = await fetch(`${API_BASE_URL}/auth/login`, {
+            const res = await fetch("http://192.168.1.101:5000/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),

@@ -20,13 +20,8 @@ const pool = new Pool({
 
 // Middleware
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL || "http://localhost:3000",  // ✅ ambil dari .env
-        "http://192.168.1.101:8080"
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    origin: "http://192.168.1.101:8080"
+    credentials: true
 }));
 app.use(express.json());
 
