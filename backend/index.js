@@ -20,7 +20,7 @@ const pool = new Pool({
 
 // Middleware
 app.use(cors({
-    origin: "http://192.168.1.101:8080"
+    origin: "http://192.168.1.101:8080",
     credentials: true
 }));
 app.use(express.json());
