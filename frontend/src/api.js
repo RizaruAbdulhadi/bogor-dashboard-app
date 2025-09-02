@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: process.env.REACT_APP_API_URL, // ✅ pakai .env, bukan hardcode
+    baseURL: `${process.env.REACT_APP_API_URL}/api`, // ✅ pakai .env, bukan hardcode
 });
 
 // Interceptor untuk menambahkan token
