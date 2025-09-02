@@ -2,10 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
+const os = require('os');
 require('dotenv').config({ path: './db.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -17,9 +19,7 @@ const pool = new Pool({
 });
 
 // ✅ Middleware
-app.use(cors({
-    origin: "*" // bisa diperketat nanti (misalnya pakai whitelist)
-}));
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // ✅ Test database connection
@@ -57,10 +57,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        const result = await pool.query(
-            "SELECT * FROM users WHERE username = $1",
-            [username]
-        );
+        const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
 
         if (result.rows.length === 0) {
             return res.status(401).json({ success: false, message: "Username atau password salah" });
@@ -76,7 +73,7 @@ app.post('/api/auth/login', async (req, res) => {
         return res.json({
             success: true,
             message: "Login berhasil",
-            token: "jwt-token-placeholder", // nanti diganti JWT asli
+            token: "jwt-token-placeholder", // TODO: ganti dengan JWT asli
             role: user.role || "user",
             username: user.username,
             user: user
@@ -100,9 +97,22 @@ app.use('*', (req, res) => {
 });
 
 // ✅ Start server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on http://${process.env.HOST || "localhost"}:${PORT}`);
-    console.log(`📡 Accessible on: http://localhost:${PORT}`);
-    console.log(`🌐 Network access: http://${process.env.NETWORK_IP || "192.168.1.101"}:${PORT}`);
+app.listen(PORT, HOST, () => {
+    // Cari semua IP LAN server
+    const nets = os.networkInterfaces();
+    const results = [];
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === "IPv4" && !net.internal) {
+                results.push(net.address);
+            }
+        }
+    }
+
+    console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+    console.log(`📡 Accessible locally on: http://localhost:${PORT}`);
+    results.forEach(ip => {
+        console.log(`🌐 Accessible on network: http://${ip}:${PORT}`);
+    });
     console.log(`🔧 CORS enabled for all origins`);
 });
