@@ -1,7 +1,8 @@
-// server.js - Simplified version
+// server.js
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -43,25 +44,34 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
+        // Cari user berdasarkan username
         const result = await pool.query(
-            "SELECT * FROM users WHERE username = $1 AND password = $2",
-            [username, password]
+            "SELECT * FROM users WHERE username = $1",
+            [username]
         );
 
-        if (result.rows.length > 0) {
-            const user = result.rows[0];
-
-            return res.json({
-                success: true,
-                message: "Login berhasil",
-                token: "jwt-token-placeholder",
-                role: user.role || "user",
-                username: user.username,
-                user: user
-            });
-        } else {
+        if (result.rows.length === 0) {
             return res.status(401).json({ success: false, message: "Username atau password salah" });
         }
+
+        const user = result.rows[0];
+
+        // Bandingkan password plain dengan hash di DB
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            return res.status(401).json({ success: false, message: "Username atau password salah" });
+        }
+
+        // Login sukses
+        return res.json({
+            success: true,
+            message: "Login berhasil",
+            token: "jwt-token-placeholder", // bisa diganti JWT beneran nanti
+            role: user.role || "user",
+            username: user.username,
+            user: user
+        });
+
     } catch (err) {
         console.error("❌ Error query login:", err.message);
         return res.status(500).json({ success: false, message: "Server error" });
