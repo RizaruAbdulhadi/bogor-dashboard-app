@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://192.168.1.101:5000/api',
+    baseURL: process.env.REACT_APP_API_URL, // ✅ pakai .env, bukan hardcode
 });
 
 // Interceptor untuk menambahkan token

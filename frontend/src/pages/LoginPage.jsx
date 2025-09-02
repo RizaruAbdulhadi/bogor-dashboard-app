@@ -1,6 +1,7 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import api from "../api"; // ✅ pakai axios instance
 
 function LoginPage() {
     const [username, setUsername] = useState("");
@@ -11,10 +12,6 @@ function LoginPage() {
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // 🔧 Ambil API base URL dari .env
-    const API_BASE_URL =
-        process.env.REACT_APP_API_URL || "http://192.168.1.101:5000";
-
     const handleLogin = async (e) => {
         e.preventDefault();
         setError("");
@@ -23,49 +20,34 @@ function LoginPage() {
         console.log("LoginPage: mulai proses login dengan username =", username);
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
-            });
+            const res = await api.post("/auth/login", { username, password });
+            console.log("LoginPage: response =", res.data);
 
-            console.log("LoginPage: response status =", res.status);
-
-            // Cek kalau bukan JSON valid
-            let data;
-            try {
-                data = await res.json();
-            } catch {
-                throw new Error("Response bukan JSON");
-            }
-
-            console.log("LoginPage: response body =", data);
-
-            if (res.ok && data.success) {
-                // Simpan ke localStorage
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("role", data.role);
-                localStorage.setItem("user", JSON.stringify(data.user));
+            if (res.data.success) {
+                // ✅ Simpan ke localStorage
+                localStorage.setItem("token", res.data.token);
+                localStorage.setItem("role", res.data.role);
+                localStorage.setItem("user", JSON.stringify(res.data.user));
 
                 console.log("LoginPage: data disimpan ke localStorage");
 
-                // Simpan ke AuthContext
+                // ✅ Simpan ke AuthContext
                 login({
-                    username: data.username,
-                    role: data.role,
-                    userData: data.user,
+                    username: res.data.username,
+                    role: res.data.role,
+                    userData: res.data.user,
                 });
 
-                // Redirect ke dashboard
+                // ✅ Redirect ke dashboard
                 navigate("/dashboard", { replace: true });
             } else {
-                setError(data.message || "Login gagal");
+                setError(res.data.message || "Login gagal");
             }
         } catch (err) {
             console.error("LoginPage: error saat login =", err);
             setError(
-                "Tidak bisa terhubung ke server. Pastikan backend jalan di " +
-                API_BASE_URL
+                err.response?.data?.message ||
+                "Tidak bisa terhubung ke server. Periksa backend API."
             );
         } finally {
             setIsLoading(false);
@@ -117,8 +99,9 @@ function LoginPage() {
                     </button>
                 </form>
 
+                {/* ✅ Tidak perlu tulis ulang BASE_URL manual */}
                 <p className="mt-4 text-xs text-center text-gray-500">
-                    Server: {API_BASE_URL}
+                    API: {process.env.REACT_APP_API_URL}
                 </p>
                 <p className="mt-2 text-xs text-center text-gray-500">
                     © {new Date().getFullYear()} Bogor Dashboard. All rights reserved.

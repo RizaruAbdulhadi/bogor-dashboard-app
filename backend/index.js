@@ -16,14 +16,13 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-// Middleware - Improved CORS configuration
+// ✅ Middleware
 app.use(cors({
-    origin: "*"
+    origin: "*" // bisa diperketat nanti (misalnya pakai whitelist)
 }));
-
 app.use(express.json());
 
-// Test database connection
+// ✅ Test database connection
 pool.connect((err, client, release) => {
     if (err) {
         console.error('❌ Database connection failed:', err.message);
@@ -33,7 +32,7 @@ pool.connect((err, client, release) => {
     }
 });
 
-// Routes
+// ✅ Routes
 app.get('/', (req, res) => {
     res.json({
         success: true,
@@ -42,7 +41,6 @@ app.get('/', (req, res) => {
     });
 });
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -59,7 +57,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        // Cari user berdasarkan username
         const result = await pool.query(
             "SELECT * FROM users WHERE username = $1",
             [username]
@@ -70,18 +67,16 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         const user = result.rows[0];
-
-        // Bandingkan password plain dengan hash di DB
         const match = await bcrypt.compare(password, user.password);
+
         if (!match) {
             return res.status(401).json({ success: false, message: "Username atau password salah" });
         }
 
-        // Login sukses
         return res.json({
             success: true,
             message: "Login berhasil",
-            token: "jwt-token-placeholder", // bisa diganti JWT beneran nanti
+            token: "jwt-token-placeholder", // nanti diganti JWT asli
             role: user.role || "user",
             username: user.username,
             user: user
@@ -93,22 +88,21 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Error handling middleware
+// ✅ Error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ success: false, message: 'Something went wrong!' });
 });
 
-
-// 404 handler
+// ✅ 404 handler
 app.use('*', (req, res) => {
     res.status(404).json({ success: false, message: 'API endpoint not found' });
 });
 
-// Start server
+// ✅ Start server
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+    console.log(`🚀 Server running on http://${process.env.HOST || "localhost"}:${PORT}`);
     console.log(`📡 Accessible on: http://localhost:${PORT}`);
-    console.log(`🌐 Network access: http://192.168.1.101:${PORT}`);
-    console.log(`🔧 CORS enabled for specified origins`);
+    console.log(`🌐 Network access: http://${process.env.NETWORK_IP || "192.168.1.101"}:${PORT}`);
+    console.log(`🔧 CORS enabled for all origins`);
 });
