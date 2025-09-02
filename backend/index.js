@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -17,8 +16,28 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-// Middleware
-app.use(cors({ origin: "*" }));
+// Middleware - Improved CORS configuration
+app.use(cors({
+    origin: function(origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl requests)
+        if (!origin) return callback(null, true);
+
+        // List of allowed origins
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://192.168.1.101:3000',
+            // Add other IP addresses or domains as needed
+        ];
+
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true
+}));
+
 app.use(express.json());
 
 // Test database connection
@@ -33,7 +52,20 @@ pool.connect((err, client, release) => {
 
 // Routes
 app.get('/', (req, res) => {
-    res.json({ success: true, message: '✅ Backend API running...' });
+    res.json({
+        success: true,
+        message: '✅ Backend API running...',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'OK',
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -78,9 +110,21 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ success: false, message: 'Something went wrong!' });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+    res.status(404).json({ success: false, message: 'API endpoint not found' });
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
     console.log(`📡 Accessible on: http://localhost:${PORT}`);
     console.log(`🌐 Network access: http://192.168.1.101:${PORT}`);
+    console.log(`🔧 CORS enabled for specified origins`);
 });
