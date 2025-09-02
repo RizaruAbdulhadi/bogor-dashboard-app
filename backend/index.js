@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
-require('dotenv').config();
+require('dotenv').config({ path: './db.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,6 +26,7 @@ app.use(cors({
         const allowedOrigins = [
             'http://localhost:3000',
             'http://192.168.1.101:3000',
+            'http://192.168.1.101:8080',
             // Add other IP addresses or domains as needed
         ];
 
