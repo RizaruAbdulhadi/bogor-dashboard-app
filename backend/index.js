@@ -99,6 +99,11 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: 'Something went wrong!' });
 });
 
+// route health check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Backend is running' });
+});
+
 // 404 handler
 app.use('*', (req, res) => {
     res.status(404).json({ success: false, message: 'API endpoint not found' });
