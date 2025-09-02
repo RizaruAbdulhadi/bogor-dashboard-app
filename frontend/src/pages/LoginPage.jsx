@@ -11,6 +11,10 @@ function LoginPage() {
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
 
+    // 🔧 Ambil API base URL dari .env
+    const API_BASE_URL =
+        process.env.REACT_APP_API_URL || "http://192.168.1.101:5000";
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setError("");
@@ -19,42 +23,50 @@ function LoginPage() {
         console.log("LoginPage: mulai proses login dengan username =", username);
 
         try {
-            // ✅ GUNAKAN IP SERVER, BUKAN LOCALHOST
-            const API_URL = 'http://192.168.1.101:5000/api/auth/login';
-
-            const res = await fetch(API_URL, {
+            const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
             });
 
             console.log("LoginPage: response status =", res.status);
 
-            const data = await res.json();
+            // Cek kalau bukan JSON valid
+            let data;
+            try {
+                data = await res.json();
+            } catch {
+                throw new Error("Response bukan JSON");
+            }
+
             console.log("LoginPage: response body =", data);
 
-            if (data.success) {
+            if (res.ok && data.success) {
+                // Simpan ke localStorage
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("role", data.role);
                 localStorage.setItem("user", JSON.stringify(data.user));
 
                 console.log("LoginPage: data disimpan ke localStorage");
 
+                // Simpan ke AuthContext
                 login({
                     username: data.username,
                     role: data.role,
-                    userData: data.user
+                    userData: data.user,
                 });
 
+                // Redirect ke dashboard
                 navigate("/dashboard", { replace: true });
             } else {
                 setError(data.message || "Login gagal");
             }
         } catch (err) {
             console.error("LoginPage: error saat login =", err);
-            setError("Koneksi gagal. Pastikan server backend berjalan di 192.168.1.101:5000");
+            setError(
+                "Tidak bisa terhubung ke server. Pastikan backend jalan di " +
+                API_BASE_URL
+            );
         } finally {
             setIsLoading(false);
         }
@@ -66,11 +78,13 @@ function LoginPage() {
                 <h2 className="text-2xl font-bold text-center text-indigo-600 mb-6">
                     Bogor Dashboard Login
                 </h2>
+
                 {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
                         {error}
                     </div>
                 )}
+
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                         <label className="block text-gray-700">Username</label>
@@ -102,8 +116,9 @@ function LoginPage() {
                         {isLoading ? "Loading..." : "Login"}
                     </button>
                 </form>
+
                 <p className="mt-4 text-xs text-center text-gray-500">
-                    Server: 192.168.1.101:5000
+                    Server: {API_BASE_URL}
                 </p>
                 <p className="mt-2 text-xs text-center text-gray-500">
                     © {new Date().getFullYear()} Bogor Dashboard. All rights reserved.
