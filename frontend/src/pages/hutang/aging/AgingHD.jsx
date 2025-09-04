@@ -237,10 +237,10 @@ const AgingHD = () => {
                         </TableHead>
 
                         <TableBody>
-                            {data.map((group, idx) => (
+                            {(data || []).map((group, idx) => (
                                 <React.Fragment key={idx}>
-                                    {(group.vendors || []).map((vendor, vIdx) => {
-                                        const aging = vendor.aging || {
+                                    {(group?.vendors || []).map((vendor, vIdx) => {
+                                        const aging = vendor?.aging || {
                                             lt30: { dpp: 0, ppn: 0 },
                                             gt30: { dpp: 0, ppn: 0 },
                                             gt60: { dpp: 0, ppn: 0 },
@@ -254,7 +254,7 @@ const AgingHD = () => {
                                         return (
                                             <StyledTableRow key={vIdx}>
                                                 <TableCell>{vIdx === 0 ? group.jenis : ""}</TableCell>
-                                                <TableCell>{vendor.nama_vendor}</TableCell>
+                                                <TableCell>{vendor?.nama_vendor || ""}</TableCell>
                                                 <TableCell align="right">{formatNumber(saldoDPP)}</TableCell>
                                                 <TableCell align="right">{formatNumber(saldoPPN)}</TableCell>
                                                 <TableCell align="right">{formatNumber(aging.lt30.dpp)}</TableCell>
@@ -269,21 +269,25 @@ const AgingHD = () => {
                                         );
                                     })}
 
+                                    {/* Subtotal per group */}
                                     <SubtotalRow>
-                                        <TableCell colSpan={2}>Subtotal {group.jenis || ""}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.lt30?.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.lt30?.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.gt30?.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.gt30?.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.gt60?.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.gt60?.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.gt90?.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal?.gt90?.ppn)}</TableCell>
+                                        <TableCell colSpan={2}>
+                                            Subtotal {group?.jenis || ""}
+                                        </TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.dpp || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.ppn || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.lt30?.dpp || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.lt30?.ppn || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.gt30?.dpp || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.gt30?.ppn || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.gt60?.dpp || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.gt60?.ppn || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.gt90?.dpp || 0)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group?.subtotal?.gt90?.ppn || 0)}</TableCell>
                                     </SubtotalRow>
                                 </React.Fragment>
                             ))}
+
                         </TableBody>
 
                         <TableFooter>
