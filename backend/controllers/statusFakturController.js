@@ -95,69 +95,97 @@ exports.getAllFaktur = async (req, res) => {
 
 exports.getAgingHD = async (req, res) => {
     try {
-        const data = await StatusFaktur.findAll();
+        const faktur = await StatusFaktur.findAll();
         const today = new Date();
 
-        // Grup berdasarkan jenis
-        const grouped = {};
-        data.forEach(faktur => {
-            const jenis = faktur.jenis || "LAINNYA";
+        // Hitung aging
+        const fakturWithAging = faktur.map(f => {
+            const tanggalFaktur = f.tanggal_faktur || f.tanggal_penerimaan || today;
+            const diffDays = Math.floor((today - new Date(tanggalFaktur)) / (1000 * 60 * 60 * 24));
 
-            if (!grouped[jenis]) {
-                grouped[jenis] = {
-                    jenis,
-                    vendors: [],
-                    subtotal: {
-                        dpp: 0,
-                        ppn: 0,
-                        lt30: { dpp: 0, ppn: 0 },
-                        gt30: { dpp: 0, ppn: 0 },
-                        gt60: { dpp: 0, ppn: 0 },
-                        gt90: { dpp: 0, ppn: 0 },
-                    }
-                };
-            }
+            let aging = {
+                lt30: { dpp: 0, ppn: 0 },
+                gt30: { dpp: 0, ppn: 0 },
+                gt60: { dpp: 0, ppn: 0 },
+                gt90: { dpp: 0, ppn: 0 },
+            };
 
-            // Hitung selisih hari dari tanggal faktur → aging
-            const tanggalFaktur = new Date(faktur.tanggal_faktur);
-            const diffDays = Math.floor((today - tanggalFaktur) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 30) aging.lt30 = { dpp: f.dpp, ppn: f.ppn };
+            else if (diffDays <= 60) aging.gt30 = { dpp: f.dpp, ppn: f.ppn };
+            else if (diffDays <= 90) aging.gt60 = { dpp: f.dpp, ppn: f.ppn };
+            else aging.gt90 = { dpp: f.dpp, ppn: f.ppn };
 
-            const aging = { lt30: { dpp: 0, ppn: 0 }, gt30: { dpp: 0, ppn: 0 }, gt60: { dpp: 0, ppn: 0 }, gt90: { dpp: 0, ppn: 0 } };
-            if (diffDays <= 30) aging.lt30 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
-            else if (diffDays <= 60) aging.gt30 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
-            else if (diffDays <= 90) aging.gt60 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
-            else aging.gt90 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
-
-            // Tambah ke vendors
-            grouped[jenis].vendors.push({
-                nama_vendor: faktur.nama_vendor,
+            return {
+                ...f.dataValues,
                 aging
-            });
-
-            // Tambah ke subtotal per jenis
-            ['lt30','gt30','gt60','gt90'].forEach(k => {
-                grouped[jenis].subtotal[k].dpp += aging[k].dpp;
-                grouped[jenis].subtotal[k].ppn += aging[k].ppn;
-            });
-            grouped[jenis].subtotal.dpp += parseFloat(faktur.dpp);
-            grouped[jenis].subtotal.ppn += parseFloat(faktur.ppn);
+            };
         });
 
-        // Hitung grand total
-        const grandTotal = { dpp: 0, ppn: 0, lt30: { dpp:0, ppn:0 }, gt30:{dpp:0, ppn:0}, gt60:{dpp:0, ppn:0}, gt90:{dpp:0, ppn:0} };
-        Object.values(grouped).forEach(group => {
-            grandTotal.dpp += group.subtotal.dpp;
-            grandTotal.ppn += group.subtotal.ppn;
-            ['lt30','gt30','gt60','gt90'].forEach(k => {
-                grandTotal[k].dpp += group.subtotal[k].dpp;
-                grandTotal[k].ppn += group.subtotal[k].ppn;
-            });
+        // Kelompokkan per jenis
+        const grouped = {};
+        fakturWithAging.forEach(f => {
+            if (!grouped[f.jenis]) grouped[f.jenis] = [];
+            grouped[f.jenis].push(f);
         });
 
-        res.json({ data: Object.values(grouped), grandTotal });
+        // Buat struktur data untuk frontend
+        const data = [];
+        const grandTotal = {
+            dpp: 0, ppn: 0,
+            lt30: { dpp: 0, ppn: 0 },
+            gt30: { dpp: 0, ppn: 0 },
+            gt60: { dpp: 0, ppn: 0 },
+            gt90: { dpp: 0, ppn: 0 },
+        };
 
+        for (let jenis in grouped) {
+            const vendors = grouped[jenis];
+            const subtotal = {
+                dpp: 0, ppn: 0,
+                lt30: { dpp: 0, ppn: 0 },
+                gt30: { dpp: 0, ppn: 0 },
+                gt60: { dpp: 0, ppn: 0 },
+                gt90: { dpp: 0, ppn: 0 },
+            };
+
+            vendors.forEach(v => {
+                subtotal.dpp += v.dpp;
+                subtotal.ppn += v.ppn;
+                subtotal.lt30.dpp += v.aging.lt30.dpp;
+                subtotal.lt30.ppn += v.aging.lt30.ppn;
+                subtotal.gt30.dpp += v.aging.gt30.dpp;
+                subtotal.gt30.ppn += v.aging.gt30.ppn;
+                subtotal.gt60.dpp += v.aging.gt60.dpp;
+                subtotal.gt60.ppn += v.aging.gt60.ppn;
+                subtotal.gt90.dpp += v.aging.gt90.dpp;
+                subtotal.gt90.ppn += v.aging.gt90.ppn;
+
+                // Update grand total
+                grandTotal.dpp += v.dpp;
+                grandTotal.ppn += v.ppn;
+                grandTotal.lt30.dpp += v.aging.lt30.dpp;
+                grandTotal.lt30.ppn += v.aging.lt30.ppn;
+                grandTotal.gt30.dpp += v.aging.gt30.dpp;
+                grandTotal.gt30.ppn += v.aging.gt30.ppn;
+                grandTotal.gt60.dpp += v.aging.gt60.dpp;
+                grandTotal.gt60.ppn += v.aging.gt60.ppn;
+                grandTotal.gt90.dpp += v.aging.gt90.dpp;
+                grandTotal.gt90.ppn += v.aging.gt90.ppn;
+            });
+
+            data.push({
+                jenis,
+                vendors: vendors.map(v => ({
+                    nama_vendor: v.nama_vendor,
+                    aging: v.aging
+                })),
+                subtotal
+            });
+        }
+
+        res.json({ data, grandTotal });
     } catch (err) {
-        console.error(err);
+        console.error("❌ Gagal getAgingHD:", err);
         res.status(500).json({ message: err.message });
     }
 };
