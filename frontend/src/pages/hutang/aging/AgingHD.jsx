@@ -9,12 +9,12 @@ import {
     TableBody,
     TableRow,
     TableCell,
+    TableContainer,
     Paper,
     Typography,
     Button,
     Box,
     TableFooter,
-    TableContainer,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
@@ -57,87 +57,102 @@ const AgingHD = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState("");
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await axios.get(`${API_URL}/api/aging-hd`);
-                console.log("✅ API AgingHD:", res.data);
+    // Format angka
+    const formatNumber = (num) =>
+        Number(num || 0).toLocaleString("id-ID", { minimumFractionDigits: 0 });
 
-                // Group per jenis
-                const today = new Date();
-                const grouped = Object.values(
-                    res.data.reduce((acc, item) => {
-                        const diffDays = Math.floor(
-                            (today - new Date(item.tanggal_faktur)) / (1000 * 60 * 60 * 24)
-                        );
-                        const aging = {
-                            lt30: diffDays <= 30 ? { dpp: item.dpp, ppn: item.ppn } : { dpp: 0, ppn: 0 },
-                            gt30: diffDays > 30 && diffDays <= 60 ? { dpp: item.dpp, ppn: item.ppn } : { dpp: 0, ppn: 0 },
-                            gt60: diffDays > 60 && diffDays <= 90 ? { dpp: item.dpp, ppn: item.ppn } : { dpp: 0, ppn: 0 },
-                            gt90: diffDays > 90 ? { dpp: item.dpp, ppn: item.ppn } : { dpp: 0, ppn: 0 },
-                        };
+    // Fungsi bantu: group data per jenis & hitung subtotal + grand total
+    const groupDataByJenis = (rawData) => {
+        const grouped = {};
 
-                        if (!acc[item.jenis])
-                            acc[item.jenis] = {
-                                jenis: item.jenis,
-                                vendors: [],
-                                subtotal: {
-                                    dpp: 0,
-                                    ppn: 0,
-                                    lt30: { dpp: 0, ppn: 0 },
-                                    gt30: { dpp: 0, ppn: 0 },
-                                    gt60: { dpp: 0, ppn: 0 },
-                                    gt90: { dpp: 0, ppn: 0 },
-                                },
-                            };
-
-                        acc[item.jenis].vendors.push({ ...item, aging });
-
-                        // Hitung subtotal
-                        acc[item.jenis].subtotal.dpp += item.dpp || 0;
-                        acc[item.jenis].subtotal.ppn += item.ppn || 0;
-                        acc[item.jenis].subtotal.lt30.dpp += aging.lt30.dpp;
-                        acc[item.jenis].subtotal.lt30.ppn += aging.lt30.ppn;
-                        acc[item.jenis].subtotal.gt30.dpp += aging.gt30.dpp;
-                        acc[item.jenis].subtotal.gt30.ppn += aging.gt30.ppn;
-                        acc[item.jenis].subtotal.gt60.dpp += aging.gt60.dpp;
-                        acc[item.jenis].subtotal.gt60.ppn += aging.gt60.ppn;
-                        acc[item.jenis].subtotal.gt90.dpp += aging.gt90.dpp;
-                        acc[item.jenis].subtotal.gt90.ppn += aging.gt90.ppn;
-
-                        return acc;
-                    }, {})
-                );
-
-                // Hitung grand total
-                const grand = grouped.reduce(
-                    (acc, group) => {
-                        acc.dpp += group.subtotal.dpp;
-                        acc.ppn += group.subtotal.ppn;
-                        acc.lt30.dpp += group.subtotal.lt30.dpp;
-                        acc.lt30.ppn += group.subtotal.lt30.ppn;
-                        acc.gt30.dpp += group.subtotal.gt30.dpp;
-                        acc.gt30.ppn += group.subtotal.gt30.ppn;
-                        acc.gt60.dpp += group.subtotal.gt60.dpp;
-                        acc.gt60.ppn += group.subtotal.gt60.ppn;
-                        acc.gt90.dpp += group.subtotal.gt90.dpp;
-                        acc.gt90.ppn += group.subtotal.gt90.ppn;
-                        return acc;
-                    },
-                    {
+        rawData.forEach((item) => {
+            const jenis = item.jenis || "LAINNYA";
+            if (!grouped[jenis]) {
+                grouped[jenis] = {
+                    jenis,
+                    vendors: [],
+                    subtotal: {
                         dpp: 0,
                         ppn: 0,
                         lt30: { dpp: 0, ppn: 0 },
                         gt30: { dpp: 0, ppn: 0 },
                         gt60: { dpp: 0, ppn: 0 },
                         gt90: { dpp: 0, ppn: 0 },
-                    }
-                );
+                    },
+                };
+            }
 
-                setData(grouped);
-                setGrandTotal(grand);
+            const today = new Date();
+            const tanggalFaktur = new Date(item.tanggal_faktur);
+            const diffDays = Math.floor((today - tanggalFaktur) / (1000 * 60 * 60 * 24));
+
+            const aging = {
+                lt30: { dpp: 0, ppn: 0 },
+                gt30: { dpp: 0, ppn: 0 },
+                gt60: { dpp: 0, ppn: 0 },
+                gt90: { dpp: 0, ppn: 0 },
+            };
+
+            if (diffDays <= 30) aging.lt30.dpp = item.dpp;
+            else if (diffDays <= 60) aging.gt30.dpp = item.dpp;
+            else if (diffDays <= 90) aging.gt60.dpp = item.dpp;
+            else aging.gt90.dpp = item.dpp;
+
+            if (diffDays <= 30) aging.lt30.ppn = item.ppn;
+            else if (diffDays <= 60) aging.gt30.ppn = item.ppn;
+            else if (diffDays <= 90) aging.gt60.ppn = item.ppn;
+            else aging.gt90.ppn = item.ppn;
+
+            grouped[jenis].vendors.push({ ...item, aging });
+
+            // Update subtotal
+            const sub = grouped[jenis].subtotal;
+            sub.dpp += item.dpp;
+            sub.ppn += item.ppn;
+            sub.lt30.dpp += aging.lt30.dpp;
+            sub.lt30.ppn += aging.lt30.ppn;
+            sub.gt30.dpp += aging.gt30.dpp;
+            sub.gt30.ppn += aging.gt30.ppn;
+            sub.gt60.dpp += aging.gt60.dpp;
+            sub.gt60.ppn += aging.gt60.ppn;
+            sub.gt90.dpp += aging.gt90.dpp;
+            sub.gt90.ppn += aging.gt90.ppn;
+        });
+
+        const grandTotal = {
+            dpp: 0,
+            ppn: 0,
+            lt30: { dpp: 0, ppn: 0 },
+            gt30: { dpp: 0, ppn: 0 },
+            gt60: { dpp: 0, ppn: 0 },
+            gt90: { dpp: 0, ppn: 0 },
+        };
+
+        Object.values(grouped).forEach((g) => {
+            grandTotal.dpp += g.subtotal.dpp;
+            grandTotal.ppn += g.subtotal.ppn;
+            grandTotal.lt30.dpp += g.subtotal.lt30.dpp;
+            grandTotal.lt30.ppn += g.subtotal.lt30.ppn;
+            grandTotal.gt30.dpp += g.subtotal.gt30.dpp;
+            grandTotal.gt30.ppn += g.subtotal.gt30.ppn;
+            grandTotal.gt60.dpp += g.subtotal.gt60.dpp;
+            grandTotal.gt60.ppn += g.subtotal.gt60.ppn;
+            grandTotal.gt90.dpp += g.subtotal.gt90.dpp;
+            grandTotal.gt90.ppn += g.subtotal.gt90.ppn;
+        });
+
+        return { groupedData: Object.values(grouped), grandTotal };
+    };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await axios.get(`${API_URL}/api/aging-hd`);
+                const { groupedData, grandTotal } = groupDataByJenis(res.data);
+                setData(groupedData);
+                setGrandTotal(grandTotal);
             } catch (err) {
-                console.error("❌ Gagal fetch data Aging HD:", err);
+                console.error(err);
                 setErrorMsg("Gagal memuat data Aging HD. Periksa koneksi API.");
             } finally {
                 setIsLoading(false);
@@ -146,10 +161,7 @@ const AgingHD = () => {
 
         fetchData();
     }, []);
-
-    const formatNumber = (num) =>
-        Number(num || 0).toLocaleString("id-ID", { minimumFractionDigits: 0 });
-
+    // Export Excel
     const exportToExcel = () => {
         const excelData = [];
 
@@ -169,7 +181,6 @@ const AgingHD = () => {
             ">90 Hari PPN",
         ]);
 
-        // Isi data
         data.forEach((group) => {
             group.vendors.forEach((vendor) => {
                 const aging = vendor.aging;
@@ -211,7 +222,7 @@ const AgingHD = () => {
             ]);
         });
 
-        // Grand total
+        // Grand Total
         excelData.push([
             "GRAND TOTAL",
             "",
@@ -228,32 +239,20 @@ const AgingHD = () => {
         ]);
 
         const ws = XLSX.utils.aoa_to_sheet(excelData);
-
-        // Auto width
-        const colWidths = excelData[0].map((_, i) => ({
+        ws["!cols"] = excelData[0].map((_, i) => ({
             wch: Math.max(...excelData.map((row) => String(row[i] || "").length + 2)),
         }));
-        ws["!cols"] = colWidths;
-
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "AgingHD");
-
         const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        const dataBlob = new Blob([excelBuffer], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
+        const dataBlob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         saveAs(dataBlob, "Laporan_Aging_HD.xlsx");
     };
 
     if (isLoading) {
         return (
             <MainLayout>
-                <Box
-                    display="flex"
-                    justifyContent="center"
-                    alignItems="center"
-                    minHeight="200px"
-                >
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                     <Typography>Loading data...</Typography>
                 </Box>
             </MainLayout>
@@ -263,12 +262,7 @@ const AgingHD = () => {
     if (errorMsg) {
         return (
             <MainLayout>
-                <Box
-                    display="flex"
-                    justifyContent="center"
-                    alignItems="center"
-                    minHeight="200px"
-                >
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                     <Typography color="error">{errorMsg}</Typography>
                 </Box>
             </MainLayout>
@@ -278,25 +272,9 @@ const AgingHD = () => {
     return (
         <MainLayout>
             <Box sx={{ p: 3 }}>
-                <Box
-                    sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mb: 3,
-                    }}
-                >
-                    <Typography variant="h4" component="h2" gutterBottom>
-                        Laporan Aging Hutang Dagang
-                    </Typography>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={exportToExcel}
-                        sx={{ ml: 2 }}
-                    >
-                        Export to Excel
-                    </Button>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                    <Typography variant="h4" gutterBottom>Laporan Aging Hutang Dagang</Typography>
+                    <Button variant="contained" color="primary" onClick={exportToExcel}>Export to Excel</Button>
                 </Box>
 
                 <TableContainer component={Paper} sx={{ mb: 4 }}>
@@ -305,33 +283,16 @@ const AgingHD = () => {
                             <TableRow>
                                 <HeaderTableCell rowSpan={2}>Jenis</HeaderTableCell>
                                 <HeaderTableCell rowSpan={2}>Vendor</HeaderTableCell>
-                                <HeaderTableCell colSpan={2} align="center">
-                                    Saldo Akhir
-                                </HeaderTableCell>
-                                <HeaderTableCell colSpan={2} align="center">
-                                    &lt;30 Hari
-                                </HeaderTableCell>
-                                <HeaderTableCell colSpan={2} align="center">
-                                    &gt;30 Hari
-                                </HeaderTableCell>
-                                <HeaderTableCell colSpan={2} align="center">
-                                    &gt;60 Hari
-                                </HeaderTableCell>
-                                <HeaderTableCell colSpan={2} align="center">
-                                    &gt;90 Hari
-                                </HeaderTableCell>
+                                <HeaderTableCell colSpan={2} align="center">Saldo Akhir</HeaderTableCell>
+                                <HeaderTableCell colSpan={2} align="center">&lt;30 Hari</HeaderTableCell>
+                                <HeaderTableCell colSpan={2} align="center">&gt;30 Hari</HeaderTableCell>
+                                <HeaderTableCell colSpan={2} align="center">&gt;60 Hari</HeaderTableCell>
+                                <HeaderTableCell colSpan={2} align="center">&gt;90 Hari</HeaderTableCell>
                             </TableRow>
                             <TableRow>
-                                <HeaderTableCell align="center">DPP</HeaderTableCell>
-                                <HeaderTableCell align="center">PPN</HeaderTableCell>
-                                <HeaderTableCell align="center">DPP</HeaderTableCell>
-                                <HeaderTableCell align="center">PPN</HeaderTableCell>
-                                <HeaderTableCell align="center">DPP</HeaderTableCell>
-                                <HeaderTableCell align="center">PPN</HeaderTableCell>
-                                <HeaderTableCell align="center">DPP</HeaderTableCell>
-                                <HeaderTableCell align="center">PPN</HeaderTableCell>
-                                <HeaderTableCell align="center">DPP</HeaderTableCell>
-                                <HeaderTableCell align="center">PPN</HeaderTableCell>
+                                {["DPP","PPN","DPP","PPN","DPP","PPN","DPP","PPN","DPP","PPN"].map((label, idx)=>(
+                                    <HeaderTableCell key={idx} align="center">{label}</HeaderTableCell>
+                                ))}
                             </TableRow>
                         </TableHead>
 
@@ -339,35 +300,27 @@ const AgingHD = () => {
                             {data.map((group, idx) => (
                                 <React.Fragment key={idx}>
                                     {group.vendors.map((vendor, vIdx) => {
-                                        const aging = vendor.aging || {
-                                            lt30: { dpp: 0, ppn: 0 },
-                                            gt30: { dpp: 0, ppn: 0 },
-                                            gt60: { dpp: 0, ppn: 0 },
-                                            gt90: { dpp: 0, ppn: 0 },
-                                        };
-                                        const saldoDPP =
-                                            aging.lt30.dpp + aging.gt30.dpp + aging.gt60.dpp + aging.gt90.dpp;
-                                        const saldoPPN =
-                                            aging.lt30.ppn + aging.gt30.ppn + aging.gt60.ppn + aging.gt90.ppn;
-
+                                        const a = vendor.aging;
+                                        const saldoDPP = a.lt30.dpp + a.gt30.dpp + a.gt60.dpp + a.gt90.dpp;
+                                        const saldoPPN = a.lt30.ppn + a.gt30.ppn + a.gt60.ppn + a.gt90.ppn;
                                         return (
                                             <StyledTableRow key={vIdx}>
                                                 <TableCell>{vIdx === 0 ? group.jenis : ""}</TableCell>
                                                 <TableCell>{vendor.nama_vendor}</TableCell>
                                                 <TableCell align="right">{formatNumber(saldoDPP)}</TableCell>
                                                 <TableCell align="right">{formatNumber(saldoPPN)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.lt30.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.lt30.ppn)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.gt30.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.gt30.ppn)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.gt60.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.gt60.ppn)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.gt90.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(aging.gt90.ppn)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.lt30.dpp)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.lt30.ppn)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.gt30.dpp)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.gt30.ppn)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.gt60.dpp)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.gt60.ppn)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.gt90.dpp)}</TableCell>
+                                                <TableCell align="right">{formatNumber(a.gt90.ppn)}</TableCell>
                                             </StyledTableRow>
                                         );
                                     })}
-
+                                    {/* Subtotal per group */}
                                     <SubtotalRow>
                                         <TableCell colSpan={2}>Subtotal {group.jenis}</TableCell>
                                         <TableCell align="right">{formatNumber(group.subtotal.dpp)}</TableCell>
@@ -408,3 +361,4 @@ const AgingHD = () => {
 };
 
 export default AgingHD;
+
