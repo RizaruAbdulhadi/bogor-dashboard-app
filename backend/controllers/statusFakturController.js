@@ -3,6 +3,27 @@ const path = require('path');
 const xlsx = require('xlsx');
 const StatusFaktur = require('../models/StatusFaktur');
 
+
+function calculateAging(tanggalFaktur) {
+    const today = new Date();
+    const fakturDate = new Date(tanggalFaktur);
+    const diffDays = Math.floor((today - fakturDate) / (1000 * 60 * 60 * 24));
+
+    const aging = {
+        lt30: { dpp: 0, ppn: 0 },
+        gt30: { dpp: 0, ppn: 0 },
+        gt60: { dpp: 0, ppn: 0 },
+        gt90: { dpp: 0, ppn: 0 },
+    };
+
+    if (diffDays <= 30) aging.lt30 = { dpp: 0, ppn: 0 }; // nanti diisi DPP/PPN
+    if (diffDays > 30 && diffDays <= 60) aging.gt30 = { dpp: 0, ppn: 0 };
+    if (diffDays > 60 && diffDays <= 90) aging.gt60 = { dpp: 0, ppn: 0 };
+    if (diffDays > 90) aging.gt90 = { dpp: 0, ppn: 0 };
+
+    return { diffDays, aging };
+}
+
 exports.uploadExcel = async (req, res) => {
     try {
         const filePath = req.file.path;
@@ -95,97 +116,93 @@ exports.getAllFaktur = async (req, res) => {
 
 exports.getAgingHD = async (req, res) => {
     try {
-        const faktur = await StatusFaktur.findAll();
-        const today = new Date();
-
-        // Hitung aging
-        const fakturWithAging = faktur.map(f => {
-            const tanggalFaktur = f.tanggal_faktur || f.tanggal_penerimaan || today;
-            const diffDays = Math.floor((today - new Date(tanggalFaktur)) / (1000 * 60 * 60 * 24));
-
-            let aging = {
-                lt30: { dpp: 0, ppn: 0 },
-                gt30: { dpp: 0, ppn: 0 },
-                gt60: { dpp: 0, ppn: 0 },
-                gt90: { dpp: 0, ppn: 0 },
-            };
-
-            if (diffDays <= 30) aging.lt30 = { dpp: f.dpp, ppn: f.ppn };
-            else if (diffDays <= 60) aging.gt30 = { dpp: f.dpp, ppn: f.ppn };
-            else if (diffDays <= 90) aging.gt60 = { dpp: f.dpp, ppn: f.ppn };
-            else aging.gt90 = { dpp: f.dpp, ppn: f.ppn };
-
-            return {
-                ...f.dataValues,
-                aging
-            };
-        });
-
-        // Kelompokkan per jenis
+        const fakturList = await StatusFaktur.findAll();
         const grouped = {};
-        fakturWithAging.forEach(f => {
-            if (!grouped[f.jenis]) grouped[f.jenis] = [];
-            grouped[f.jenis].push(f);
-        });
-
-        // Buat struktur data untuk frontend
-        const data = [];
         const grandTotal = {
-            dpp: 0, ppn: 0,
+            dpp: 0,
+            ppn: 0,
             lt30: { dpp: 0, ppn: 0 },
             gt30: { dpp: 0, ppn: 0 },
             gt60: { dpp: 0, ppn: 0 },
             gt90: { dpp: 0, ppn: 0 },
         };
 
-        for (let jenis in grouped) {
-            const vendors = grouped[jenis];
-            const subtotal = {
-                dpp: 0, ppn: 0,
-                lt30: { dpp: 0, ppn: 0 },
-                gt30: { dpp: 0, ppn: 0 },
-                gt60: { dpp: 0, ppn: 0 },
-                gt90: { dpp: 0, ppn: 0 },
-            };
+        fakturList.forEach(faktur => {
+            const jenis = faktur.jenis || "LAINNYA";
+            if (!grouped[jenis]) {
+                grouped[jenis] = { jenis, vendors: {}, subtotal: {
+                        dpp: 0, ppn: 0,
+                        lt30: { dpp: 0, ppn: 0 },
+                        gt30: { dpp: 0, ppn: 0 },
+                        gt60: { dpp: 0, ppn: 0 },
+                        gt90: { dpp: 0, ppn: 0 },
+                    }};
+            }
 
-            vendors.forEach(v => {
-                subtotal.dpp += v.dpp;
-                subtotal.ppn += v.ppn;
-                subtotal.lt30.dpp += v.aging.lt30.dpp;
-                subtotal.lt30.ppn += v.aging.lt30.ppn;
-                subtotal.gt30.dpp += v.aging.gt30.dpp;
-                subtotal.gt30.ppn += v.aging.gt30.ppn;
-                subtotal.gt60.dpp += v.aging.gt60.dpp;
-                subtotal.gt60.ppn += v.aging.gt60.ppn;
-                subtotal.gt90.dpp += v.aging.gt90.dpp;
-                subtotal.gt90.ppn += v.aging.gt90.ppn;
+            const agingResult = calculateAging(faktur.tanggal_faktur);
+            const diffDays = agingResult.diffDays;
+            const aging = agingResult.aging;
 
-                // Update grand total
-                grandTotal.dpp += v.dpp;
-                grandTotal.ppn += v.ppn;
-                grandTotal.lt30.dpp += v.aging.lt30.dpp;
-                grandTotal.lt30.ppn += v.aging.lt30.ppn;
-                grandTotal.gt30.dpp += v.aging.gt30.dpp;
-                grandTotal.gt30.ppn += v.aging.gt30.ppn;
-                grandTotal.gt60.dpp += v.aging.gt60.dpp;
-                grandTotal.gt60.ppn += v.aging.gt60.ppn;
-                grandTotal.gt90.dpp += v.aging.gt90.dpp;
-                grandTotal.gt90.ppn += v.aging.gt90.ppn;
-            });
+            // Tentukan kategori aging
+            if (diffDays <= 30) aging.lt30 = { dpp: faktur.dpp, ppn: faktur.ppn };
+            else if (diffDays <= 60) aging.gt30 = { dpp: faktur.dpp, ppn: faktur.ppn };
+            else if (diffDays <= 90) aging.gt60 = { dpp: faktur.dpp, ppn: faktur.ppn };
+            else aging.gt90 = { dpp: faktur.dpp, ppn: faktur.ppn };
 
-            data.push({
-                jenis,
-                vendors: vendors.map(v => ({
-                    nama_vendor: v.nama_vendor,
-                    aging: v.aging
-                })),
-                subtotal
-            });
-        }
+            // Tambahkan ke vendor
+            if (!grouped[jenis].vendors[faktur.nama_vendor]) {
+                grouped[jenis].vendors[faktur.nama_vendor] = {
+                    nama_vendor: faktur.nama_vendor,
+                    aging: { ...aging }
+                };
+            } else {
+                // jika vendor sudah ada, jumlahkan aging
+                const vendorAging = grouped[jenis].vendors[faktur.nama_vendor].aging;
+                vendorAging.lt30.dpp += aging.lt30.dpp;
+                vendorAging.lt30.ppn += aging.lt30.ppn;
+                vendorAging.gt30.dpp += aging.gt30.dpp;
+                vendorAging.gt30.ppn += aging.gt30.ppn;
+                vendorAging.gt60.dpp += aging.gt60.dpp;
+                vendorAging.gt60.ppn += aging.gt60.ppn;
+                vendorAging.gt90.dpp += aging.gt90.dpp;
+                vendorAging.gt90.ppn += aging.gt90.ppn;
+            }
+
+            // Hitung subtotal per jenis
+            const subtotal = grouped[jenis].subtotal;
+            subtotal.dpp += faktur.dpp;
+            subtotal.ppn += faktur.ppn;
+            subtotal.lt30.dpp += aging.lt30.dpp;
+            subtotal.lt30.ppn += aging.lt30.ppn;
+            subtotal.gt30.dpp += aging.gt30.dpp;
+            subtotal.gt30.ppn += aging.gt30.ppn;
+            subtotal.gt60.dpp += aging.gt60.dpp;
+            subtotal.gt60.ppn += aging.gt60.ppn;
+            subtotal.gt90.dpp += aging.gt90.dpp;
+            subtotal.gt90.ppn += aging.gt90.ppn;
+
+            // Hitung grand total
+            grandTotal.dpp += faktur.dpp;
+            grandTotal.ppn += faktur.ppn;
+            grandTotal.lt30.dpp += aging.lt30.dpp;
+            grandTotal.lt30.ppn += aging.lt30.ppn;
+            grandTotal.gt30.dpp += aging.gt30.dpp;
+            grandTotal.gt30.ppn += aging.gt30.ppn;
+            grandTotal.gt60.dpp += aging.gt60.dpp;
+            grandTotal.gt60.ppn += aging.gt60.ppn;
+            grandTotal.gt90.dpp += aging.gt90.dpp;
+            grandTotal.gt90.ppn += aging.gt90.ppn;
+        });
+
+        // Konversi vendors object ke array
+        const data = Object.values(grouped).map(group => ({
+            ...group,
+            vendors: Object.values(group.vendors)
+        }));
 
         res.json({ data, grandTotal });
     } catch (err) {
-        console.error("❌ Gagal getAgingHD:", err);
+        console.error("❌ Error getAgingHD:", err);
         res.status(500).json({ message: err.message });
     }
 };
