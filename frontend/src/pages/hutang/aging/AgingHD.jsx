@@ -15,8 +15,12 @@ import {
     Button,
     Box,
     TableFooter,
+    Collapse,
+    IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -33,16 +37,93 @@ const HeaderTableCell = styled(TableCell)(({ theme }) => ({
 
 const SubtotalRow = styled(TableRow)(({ theme }) => ({
     backgroundColor: theme.palette.grey[200],
-    "& td": { fontSize: "1rem" },
-    fontWeight: "700 !important",
+    "& td": { fontSize: "1rem", fontWeight: "bold" },
 }));
 
 const GrandTotalRow = styled(TableRow)(({ theme }) => ({
     backgroundColor: theme.palette.primary.light,
-    fontWeight: "700 !important",
-    "& td": { fontSize: "1rem" },
-    fontSize: "1.1rem",
+    fontWeight: "bold",
+    "& td": { fontSize: "1rem", fontWeight: "bold" },
 }));
+
+const VendorGroupRow = ({ group, vendorGroup, isExpanded, toggleExpand }) => {
+    return (
+        <>
+            <TableRow>
+                <TableCell>
+                    <IconButton size="small" onClick={() => toggleExpand(vendorGroup.vendorKey)}>
+                        {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                    </IconButton>
+                </TableCell>
+                <TableCell>{group.jenis}</TableCell>
+                <TableCell>{vendorGroup.nama_vendor}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.dpp)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.ppn)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.lt30.dpp)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.lt30.ppn)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.gt30.dpp)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.gt30.ppn)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.gt60.dpp)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.gt60.ppn)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.gt90.dpp)}</TableCell>
+                <TableCell align="right">{formatNumber(vendorGroup.subtotal.gt90.ppn)}</TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={13}>
+                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                        <Box sx={{ margin: 1 }}>
+                            <Typography variant="h6" gutterBottom component="div">
+                                Detail Faktur
+                            </Typography>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>No. Faktur</TableCell>
+                                        <TableCell>Tanggal Faktur</TableCell>
+                                        <TableCell>No. Penerimaan</TableCell>
+                                        <TableCell>DPP</TableCell>
+                                        <TableCell>PPN</TableCell>
+                                        <TableCell>Total</TableCell>
+                                        <TableCell>Aging</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {vendorGroup.items.map((item, index) => {
+                                        const today = new Date();
+                                        const tanggalFaktur = new Date(item.tanggal_faktur);
+                                        const diffDays = Math.floor((today - tanggalFaktur) / (1000 * 60 * 60 * 24));
+                                        let agingCategory = "";
+
+                                        if (diffDays <= 30) agingCategory = "<30 Hari";
+                                        else if (diffDays <= 60) agingCategory = ">30 Hari";
+                                        else if (diffDays <= 90) agingCategory = ">60 Hari";
+                                        else agingCategory = ">90 Hari";
+
+                                        return (
+                                            <TableRow key={index}>
+                                                <TableCell>{item.no_faktur}</TableCell>
+                                                <TableCell>{item.tanggal_faktur}</TableCell>
+                                                <TableCell>{item.nomor_penerimaan}</TableCell>
+                                                <TableCell align="right">{formatNumber(item.dpp)}</TableCell>
+                                                <TableCell align="right">{formatNumber(item.ppn)}</TableCell>
+                                                <TableCell align="right">{formatNumber(item.total)}</TableCell>
+                                                <TableCell>{agingCategory}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </Box>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </>
+    );
+};
+
+// Format angka
+const formatNumber = (num) =>
+    Number(num || 0).toLocaleString("id-ID", { minimumFractionDigits: 0 });
 
 const AgingHD = () => {
     const [data, setData] = useState([]);
@@ -56,21 +137,44 @@ const AgingHD = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState("");
+    const [expandedRows, setExpandedRows] = useState({});
 
-    // Format angka
-    const formatNumber = (num) =>
-        Number(num || 0).toLocaleString("id-ID", { minimumFractionDigits: 0 });
+    const toggleExpand = (vendorKey) => {
+        setExpandedRows(prev => ({
+            ...prev,
+            [vendorKey]: !prev[vendorKey]
+        }));
+    };
 
-    // Fungsi bantu: group data per jenis & hitung subtotal + grand total
-    const groupDataByJenis = (rawData) => {
+    // Fungsi bantu: group data per jenis & vendor, hitung subtotal + grand total
+    const groupDataByJenisAndVendor = (rawData) => {
         const grouped = {};
 
         rawData.forEach((item) => {
             const jenis = item.jenis || "LAINNYA";
+            const vendorKey = `${item.kode_vendor}-${item.nama_vendor}`;
+
             if (!grouped[jenis]) {
                 grouped[jenis] = {
                     jenis,
-                    vendors: [],
+                    vendorGroups: {},
+                    subtotal: {
+                        dpp: 0,
+                        ppn: 0,
+                        lt30: { dpp: 0, ppn: 0 },
+                        gt30: { dpp: 0, ppn: 0 },
+                        gt60: { dpp: 0, ppn: 0 },
+                        gt90: { dpp: 0, ppn: 0 },
+                    },
+                };
+            }
+
+            if (!grouped[jenis].vendorGroups[vendorKey]) {
+                grouped[jenis].vendorGroups[vendorKey] = {
+                    vendorKey,
+                    kode_vendor: item.kode_vendor,
+                    nama_vendor: item.nama_vendor,
+                    items: [],
                     subtotal: {
                         dpp: 0,
                         ppn: 0,
@@ -93,30 +197,48 @@ const AgingHD = () => {
                 gt90: { dpp: 0, ppn: 0 },
             };
 
-            if (diffDays <= 30) aging.lt30.dpp = item.dpp;
-            else if (diffDays <= 60) aging.gt30.dpp = item.dpp;
-            else if (diffDays <= 90) aging.gt60.dpp = item.dpp;
-            else aging.gt90.dpp = item.dpp;
+            if (diffDays <= 30) {
+                aging.lt30.dpp = Number(item.dpp) || 0;
+                aging.lt30.ppn = Number(item.ppn) || 0;
+            } else if (diffDays <= 60) {
+                aging.gt30.dpp = Number(item.dpp) || 0;
+                aging.gt30.ppn = Number(item.ppn) || 0;
+            } else if (diffDays <= 90) {
+                aging.gt60.dpp = Number(item.dpp) || 0;
+                aging.gt60.ppn = Number(item.ppn) || 0;
+            } else {
+                aging.gt90.dpp = Number(item.dpp) || 0;
+                aging.gt90.ppn = Number(item.ppn) || 0;
+            }
 
-            if (diffDays <= 30) aging.lt30.ppn = item.ppn;
-            else if (diffDays <= 60) aging.gt30.ppn = item.ppn;
-            else if (diffDays <= 90) aging.gt60.ppn = item.ppn;
-            else aging.gt90.ppn = item.ppn;
+            // Add item to vendor group
+            grouped[jenis].vendorGroups[vendorKey].items.push(item);
 
-            grouped[jenis].vendors.push({ ...item, aging });
+            // Update vendor subtotal
+            const vendorSub = grouped[jenis].vendorGroups[vendorKey].subtotal;
+            vendorSub.dpp += Number(item.dpp) || 0;
+            vendorSub.ppn += Number(item.ppn) || 0;
+            vendorSub.lt30.dpp += aging.lt30.dpp;
+            vendorSub.lt30.ppn += aging.lt30.ppn;
+            vendorSub.gt30.dpp += aging.gt30.dpp;
+            vendorSub.gt30.ppn += aging.gt30.ppn;
+            vendorSub.gt60.dpp += aging.gt60.dpp;
+            vendorSub.gt60.ppn += aging.gt60.ppn;
+            vendorSub.gt90.dpp += aging.gt90.dpp;
+            vendorSub.gt90.ppn += aging.gt90.ppn;
 
-            // Update subtotal
-            const sub = grouped[jenis].subtotal;
-            sub.dpp += item.dpp;
-            sub.ppn += item.ppn;
-            sub.lt30.dpp += aging.lt30.dpp;
-            sub.lt30.ppn += aging.lt30.ppn;
-            sub.gt30.dpp += aging.gt30.dpp;
-            sub.gt30.ppn += aging.gt30.ppn;
-            sub.gt60.dpp += aging.gt60.dpp;
-            sub.gt60.ppn += aging.gt60.ppn;
-            sub.gt90.dpp += aging.gt90.dpp;
-            sub.gt90.ppn += aging.gt90.ppn;
+            // Update group subtotal
+            const groupSub = grouped[jenis].subtotal;
+            groupSub.dpp += Number(item.dpp) || 0;
+            groupSub.ppn += Number(item.ppn) || 0;
+            groupSub.lt30.dpp += aging.lt30.dpp;
+            groupSub.lt30.ppn += aging.lt30.ppn;
+            groupSub.gt30.dpp += aging.gt30.dpp;
+            groupSub.gt30.ppn += aging.gt30.ppn;
+            groupSub.gt60.dpp += aging.gt60.dpp;
+            groupSub.gt60.ppn += aging.gt60.ppn;
+            groupSub.gt90.dpp += aging.gt90.dpp;
+            groupSub.gt90.ppn += aging.gt90.ppn;
         });
 
         const grandTotal = {
@@ -128,17 +250,20 @@ const AgingHD = () => {
             gt90: { dpp: 0, ppn: 0 },
         };
 
-        Object.values(grouped).forEach((g) => {
-            grandTotal.dpp += g.subtotal.dpp;
-            grandTotal.ppn += g.subtotal.ppn;
-            grandTotal.lt30.dpp += g.subtotal.lt30.dpp;
-            grandTotal.lt30.ppn += g.subtotal.lt30.ppn;
-            grandTotal.gt30.dpp += g.subtotal.gt30.dpp;
-            grandTotal.gt30.ppn += g.subtotal.gt30.ppn;
-            grandTotal.gt60.dpp += g.subtotal.gt60.dpp;
-            grandTotal.gt60.ppn += g.subtotal.gt60.ppn;
-            grandTotal.gt90.dpp += g.subtotal.gt90.dpp;
-            grandTotal.gt90.ppn += g.subtotal.gt90.ppn;
+        // Convert vendorGroups to array and calculate grand total
+        Object.values(grouped).forEach((group) => {
+            group.vendorGroups = Object.values(group.vendorGroups);
+
+            grandTotal.dpp += group.subtotal.dpp;
+            grandTotal.ppn += group.subtotal.ppn;
+            grandTotal.lt30.dpp += group.subtotal.lt30.dpp;
+            grandTotal.lt30.ppn += group.subtotal.lt30.ppn;
+            grandTotal.gt30.dpp += group.subtotal.gt30.dpp;
+            grandTotal.gt30.ppn += group.subtotal.gt30.ppn;
+            grandTotal.gt60.dpp += group.subtotal.gt60.dpp;
+            grandTotal.gt60.ppn += group.subtotal.gt60.ppn;
+            grandTotal.gt90.dpp += group.subtotal.gt90.dpp;
+            grandTotal.gt90.ppn += group.subtotal.gt90.ppn;
         });
 
         return { groupedData: Object.values(grouped), grandTotal };
@@ -148,7 +273,7 @@ const AgingHD = () => {
         const fetchData = async () => {
             try {
                 const res = await axios.get(`${API_URL}/api/aging-hd`);
-                const { groupedData, grandTotal } = groupDataByJenis(res.data);
+                const { groupedData, grandTotal } = groupDataByJenisAndVendor(res.data);
                 setData(groupedData);
                 setGrandTotal(grandTotal);
             } catch (err) {
@@ -161,6 +286,7 @@ const AgingHD = () => {
 
         fetchData();
     }, []);
+
     // Export Excel
     const exportToExcel = () => {
         const excelData = [];
@@ -168,7 +294,8 @@ const AgingHD = () => {
         // Header
         excelData.push([
             "Jenis",
-            "Vendor",
+            "Kode Vendor",
+            "Nama Vendor",
             "Saldo Akhir DPP",
             "Saldo Akhir PPN",
             "<30 Hari DPP",
@@ -182,32 +309,28 @@ const AgingHD = () => {
         ]);
 
         data.forEach((group) => {
-            group.vendors.forEach((vendor) => {
-                const aging = vendor.aging;
-                const saldoDPP =
-                    aging.lt30.dpp + aging.gt30.dpp + aging.gt60.dpp + aging.gt90.dpp;
-                const saldoPPN =
-                    aging.lt30.ppn + aging.gt30.ppn + aging.gt60.ppn + aging.gt90.ppn;
-
+            group.vendorGroups.forEach((vendorGroup) => {
                 excelData.push([
                     group.jenis,
-                    vendor.nama_vendor,
-                    saldoDPP,
-                    saldoPPN,
-                    aging.lt30.dpp,
-                    aging.lt30.ppn,
-                    aging.gt30.dpp,
-                    aging.gt30.ppn,
-                    aging.gt60.dpp,
-                    aging.gt60.ppn,
-                    aging.gt90.dpp,
-                    aging.gt90.ppn,
+                    vendorGroup.kode_vendor,
+                    vendorGroup.nama_vendor,
+                    vendorGroup.subtotal.dpp,
+                    vendorGroup.subtotal.ppn,
+                    vendorGroup.subtotal.lt30.dpp,
+                    vendorGroup.subtotal.lt30.ppn,
+                    vendorGroup.subtotal.gt30.dpp,
+                    vendorGroup.subtotal.gt30.ppn,
+                    vendorGroup.subtotal.gt60.dpp,
+                    vendorGroup.subtotal.gt60.ppn,
+                    vendorGroup.subtotal.gt90.dpp,
+                    vendorGroup.subtotal.gt90.ppn,
                 ]);
             });
 
             // Subtotal per group
             excelData.push([
                 `Subtotal ${group.jenis}`,
+                "",
                 "",
                 group.subtotal.dpp,
                 group.subtotal.ppn,
@@ -225,6 +348,7 @@ const AgingHD = () => {
         // Grand Total
         excelData.push([
             "GRAND TOTAL",
+            "",
             "",
             grandTotal.dpp,
             grandTotal.ppn,
@@ -281,8 +405,9 @@ const AgingHD = () => {
                     <Table size="small" stickyHeader>
                         <TableHead>
                             <TableRow>
-                                <HeaderTableCell rowSpan={2}>Jenis</HeaderTableCell>
-                                <HeaderTableCell rowSpan={2}>Vendor</HeaderTableCell>
+                                <HeaderTableCell></HeaderTableCell>
+                                <HeaderTableCell>Jenis</HeaderTableCell>
+                                <HeaderTableCell>Vendor</HeaderTableCell>
                                 <HeaderTableCell colSpan={2} align="center">Saldo Akhir</HeaderTableCell>
                                 <HeaderTableCell colSpan={2} align="center">&lt;30 Hari</HeaderTableCell>
                                 <HeaderTableCell colSpan={2} align="center">&gt;30 Hari</HeaderTableCell>
@@ -290,6 +415,9 @@ const AgingHD = () => {
                                 <HeaderTableCell colSpan={2} align="center">&gt;90 Hari</HeaderTableCell>
                             </TableRow>
                             <TableRow>
+                                <HeaderTableCell></HeaderTableCell>
+                                <HeaderTableCell></HeaderTableCell>
+                                <HeaderTableCell></HeaderTableCell>
                                 {["DPP","PPN","DPP","PPN","DPP","PPN","DPP","PPN","DPP","PPN"].map((label, idx)=>(
                                     <HeaderTableCell key={idx} align="center">{label}</HeaderTableCell>
                                 ))}
@@ -299,30 +427,18 @@ const AgingHD = () => {
                         <TableBody>
                             {data.map((group, idx) => (
                                 <React.Fragment key={idx}>
-                                    {group.vendors.map((vendor, vIdx) => {
-                                        const a = vendor.aging;
-                                        const saldoDPP = a.lt30.dpp + a.gt30.dpp + a.gt60.dpp + a.gt90.dpp;
-                                        const saldoPPN = a.lt30.ppn + a.gt30.ppn + a.gt60.ppn + a.gt90.ppn;
-                                        return (
-                                            <StyledTableRow key={vIdx}>
-                                                <TableCell>{vIdx === 0 ? group.jenis : ""}</TableCell>
-                                                <TableCell>{vendor.nama_vendor}</TableCell>
-                                                <TableCell align="right">{formatNumber(saldoDPP)}</TableCell>
-                                                <TableCell align="right">{formatNumber(saldoPPN)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.lt30.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.lt30.ppn)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.gt30.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.gt30.ppn)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.gt60.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.gt60.ppn)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.gt90.dpp)}</TableCell>
-                                                <TableCell align="right">{formatNumber(a.gt90.ppn)}</TableCell>
-                                            </StyledTableRow>
-                                        );
-                                    })}
+                                    {group.vendorGroups.map((vendorGroup, vIdx) => (
+                                        <VendorGroupRow
+                                            key={vIdx}
+                                            group={group}
+                                            vendorGroup={vendorGroup}
+                                            isExpanded={expandedRows[vendorGroup.vendorKey]}
+                                            toggleExpand={toggleExpand}
+                                        />
+                                    ))}
                                     {/* Subtotal per group */}
                                     <SubtotalRow>
-                                        <TableCell colSpan={2}>Subtotal {group.jenis}</TableCell>
+                                        <TableCell colSpan={3}>Subtotal {group.jenis}</TableCell>
                                         <TableCell align="right">{formatNumber(group.subtotal.dpp)}</TableCell>
                                         <TableCell align="right">{formatNumber(group.subtotal.ppn)}</TableCell>
                                         <TableCell align="right">{formatNumber(group.subtotal.lt30.dpp)}</TableCell>
@@ -340,7 +456,7 @@ const AgingHD = () => {
 
                         <TableFooter>
                             <GrandTotalRow>
-                                <TableCell colSpan={2}>GRAND TOTAL</TableCell>
+                                <TableCell colSpan={3}>GRAND TOTAL</TableCell>
                                 <TableCell align="right">{formatNumber(grandTotal.dpp)}</TableCell>
                                 <TableCell align="right">{formatNumber(grandTotal.ppn)}</TableCell>
                                 <TableCell align="right">{formatNumber(grandTotal.lt30.dpp)}</TableCell>
@@ -361,4 +477,3 @@ const AgingHD = () => {
 };
 
 export default AgingHD;
-
