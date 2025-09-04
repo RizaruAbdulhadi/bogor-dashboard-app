@@ -93,21 +93,72 @@ exports.getAllFaktur = async (req, res) => {
     }
 };
 
-exports.getAging = async (req, res) => {
+exports.getAgingHD = async (req, res) => {
     try {
         const data = await StatusFaktur.findAll();
         const today = new Date();
 
-        const result = data.map(item => {
-            const diff = Math.floor((today - new Date(item.tanggal)) / (1000 * 60 * 60 * 24));
-            return {
-                ...item.dataValues,
-                aging: diff,
-            };
+        // Grup berdasarkan jenis
+        const grouped = {};
+        data.forEach(faktur => {
+            const jenis = faktur.jenis || "LAINNYA";
+
+            if (!grouped[jenis]) {
+                grouped[jenis] = {
+                    jenis,
+                    vendors: [],
+                    subtotal: {
+                        dpp: 0,
+                        ppn: 0,
+                        lt30: { dpp: 0, ppn: 0 },
+                        gt30: { dpp: 0, ppn: 0 },
+                        gt60: { dpp: 0, ppn: 0 },
+                        gt90: { dpp: 0, ppn: 0 },
+                    }
+                };
+            }
+
+            // Hitung selisih hari dari tanggal faktur → aging
+            const tanggalFaktur = new Date(faktur.tanggal_faktur);
+            const diffDays = Math.floor((today - tanggalFaktur) / (1000 * 60 * 60 * 24));
+
+            const aging = { lt30: { dpp: 0, ppn: 0 }, gt30: { dpp: 0, ppn: 0 }, gt60: { dpp: 0, ppn: 0 }, gt90: { dpp: 0, ppn: 0 } };
+            if (diffDays <= 30) aging.lt30 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
+            else if (diffDays <= 60) aging.gt30 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
+            else if (diffDays <= 90) aging.gt60 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
+            else aging.gt90 = { dpp: parseFloat(faktur.dpp), ppn: parseFloat(faktur.ppn) };
+
+            // Tambah ke vendors
+            grouped[jenis].vendors.push({
+                nama_vendor: faktur.nama_vendor,
+                aging
+            });
+
+            // Tambah ke subtotal per jenis
+            ['lt30','gt30','gt60','gt90'].forEach(k => {
+                grouped[jenis].subtotal[k].dpp += aging[k].dpp;
+                grouped[jenis].subtotal[k].ppn += aging[k].ppn;
+            });
+            grouped[jenis].subtotal.dpp += parseFloat(faktur.dpp);
+            grouped[jenis].subtotal.ppn += parseFloat(faktur.ppn);
         });
 
-        res.json(result);
+        // Hitung grand total
+        const grandTotal = { dpp: 0, ppn: 0, lt30: { dpp:0, ppn:0 }, gt30:{dpp:0, ppn:0}, gt60:{dpp:0, ppn:0}, gt90:{dpp:0, ppn:0} };
+        Object.values(grouped).forEach(group => {
+            grandTotal.dpp += group.subtotal.dpp;
+            grandTotal.ppn += group.subtotal.ppn;
+            ['lt30','gt30','gt60','gt90'].forEach(k => {
+                grandTotal[k].dpp += group.subtotal[k].dpp;
+                grandTotal[k].ppn += group.subtotal[k].ppn;
+            });
+        });
+
+        res.json({ data: Object.values(grouped), grandTotal });
+
     } catch (err) {
+        console.error(err);
         res.status(500).json({ message: err.message });
     }
 };
+
