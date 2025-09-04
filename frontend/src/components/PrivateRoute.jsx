@@ -1,13 +1,16 @@
-import { useContext } from "react";
+import React, { useContext } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
 const PrivateRoute = ({ children }) => {
-    const { isLoggedIn } = useContext(AuthContext);
-    console.log("PrivateRoute: isLoggedIn =", isLoggedIn);
+    const { isLoggedIn, loading } = useContext(AuthContext);
+
+    if (loading) {
+        return <div className="text-center mt-20">Loading...</div>; // ✅ jangan langsung redirect
+    }
 
     if (!isLoggedIn) {
-        console.warn("PrivateRoute: belum login, redirect ke /login");
+        console.log("PrivateRoute: belum login, redirect ke /login");
         return <Navigate to="/login" replace />;
     }
 

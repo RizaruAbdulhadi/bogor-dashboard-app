@@ -5,8 +5,8 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true); // ✅ untuk nunggu rehydrate
 
-    // ✅ Cek localStorage saat pertama kali render
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
         const storedToken = localStorage.getItem("token");
@@ -15,6 +15,8 @@ export const AuthProvider = ({ children }) => {
             setIsLoggedIn(true);
             setUser(JSON.parse(storedUser));
         }
+
+        setLoading(false); // ✅ selesai cek localStorage
     }, []);
 
     const login = (userData) => {
@@ -33,7 +35,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+        <AuthContext.Provider value={{ isLoggedIn, user, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
