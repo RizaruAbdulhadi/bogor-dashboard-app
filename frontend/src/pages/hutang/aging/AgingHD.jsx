@@ -1,20 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import MainLayout from '../../../layouts/MainLayout';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import MainLayout from "../../../layouts/MainLayout";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import {
-    Table, TableHead, TableBody, TableRow, TableCell,
-    Paper, Typography, Button, Box,
-    TableFooter, TableContainer
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
+    Table,
+    TableHead,
+    TableBody,
+    TableRow,
+    TableCell,
+    Paper,
+    Typography,
+    Button,
+    Box,
+    TableFooter,
+    TableContainer,
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-    '&:nth-of-type(odd)': {
+    "&:nth-of-type(odd)": {
         backgroundColor: theme.palette.action.hover,
     },
-    '&:last-child td, &:last-child th': {
+    "&:last-child td, &:last-child th": {
         border: 0,
     },
 }));
@@ -22,20 +32,20 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 const HeaderTableCell = styled(TableCell)(({ theme }) => ({
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.common.white,
-    fontWeight: 'bold',
+    fontWeight: "bold",
 }));
 
 const SubtotalRow = styled(TableRow)(({ theme }) => ({
     backgroundColor: theme.palette.grey[200],
-    '& td': { fontSize: '1rem' },
-    fontWeight: '700 !important',
+    "& td": { fontSize: "1rem" },
+    fontWeight: "700 !important",
 }));
 
 const GrandTotalRow = styled(TableRow)(({ theme }) => ({
     backgroundColor: theme.palette.primary.light,
-    fontWeight: '700 !important',
-    '& td': { fontSize: '1rem' },
-    fontSize: '1.1rem',
+    fontWeight: "700 !important",
+    "& td": { fontSize: "1rem" },
+    fontSize: "1.1rem",
 }));
 
 const AgingHD = () => {
@@ -46,18 +56,20 @@ const AgingHD = () => {
         lt30: { dpp: 0, ppn: 0 },
         gt30: { dpp: 0, ppn: 0 },
         gt60: { dpp: 0, ppn: 0 },
-        gt90: { dpp: 0, ppn: 0 }
+        gt90: { dpp: 0, ppn: 0 },
     });
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get('http://localhost:5000/api/aging-hd');
+                const res = await axios.get(`${API_URL}/api/aging-hd`);
                 setData(res.data.data);
                 setGrandTotal(res.data.grandTotal);
             } catch (err) {
-                console.error(err);
+                console.error("❌ Gagal fetch data Aging HD:", err);
+                setErrorMsg("Gagal memuat data Aging HD. Periksa koneksi API.");
             } finally {
                 setIsLoading(false);
             }
@@ -66,25 +78,36 @@ const AgingHD = () => {
         fetchData();
     }, []);
 
-    const formatNumber = num => Number(num || 0).toLocaleString('id-ID');
+    const formatNumber = (num) =>
+        Number(num || 0).toLocaleString("id-ID", { minimumFractionDigits: 0 });
 
     const exportToExcel = () => {
-        // Prepare data for Excel export
         const excelData = [];
 
-        // Add headers
+        // Header
         excelData.push([
-            'Jenis', 'Vendor', 'Saldo Akhir DPP', 'Saldo Akhir PPN',
-            '<30 Hari DPP', '<30 Hari PPN', '>30 Hari DPP', '>30 Hari PPN',
-            '>60 Hari DPP', '>60 Hari PPN', '>90 Hari DPP', '>90 Hari PPN'
+            "Jenis",
+            "Vendor",
+            "Saldo Akhir DPP",
+            "Saldo Akhir PPN",
+            "<30 Hari DPP",
+            "<30 Hari PPN",
+            ">30 Hari DPP",
+            ">30 Hari PPN",
+            ">60 Hari DPP",
+            ">60 Hari PPN",
+            ">90 Hari DPP",
+            ">90 Hari PPN",
         ]);
 
-        // Add data rows
-        data.forEach(group => {
-            group.vendors.forEach(vendor => {
+        // Isi data
+        data.forEach((group) => {
+            group.vendors.forEach((vendor) => {
                 const aging = vendor.aging;
-                const saldoDPP = aging.lt30.dpp + aging.gt30.dpp + aging.gt60.dpp + aging.gt90.dpp;
-                const saldoPPN = aging.lt30.ppn + aging.gt30.ppn + aging.gt60.ppn + aging.gt90.ppn;
+                const saldoDPP =
+                    aging.lt30.dpp + aging.gt30.dpp + aging.gt60.dpp + aging.gt90.dpp;
+                const saldoPPN =
+                    aging.lt30.ppn + aging.gt30.ppn + aging.gt60.ppn + aging.gt90.ppn;
 
                 excelData.push([
                     group.jenis,
@@ -98,14 +121,14 @@ const AgingHD = () => {
                     aging.gt60.dpp,
                     aging.gt60.ppn,
                     aging.gt90.dpp,
-                    aging.gt90.ppn
+                    aging.gt90.ppn,
                 ]);
             });
 
-            // Add subtotal row
+            // Subtotal per group
             excelData.push([
                 `Subtotal ${group.jenis}`,
-                '',
+                "",
                 group.subtotal.dpp,
                 group.subtotal.ppn,
                 group.subtotal.lt30.dpp,
@@ -115,14 +138,14 @@ const AgingHD = () => {
                 group.subtotal.gt60.dpp,
                 group.subtotal.gt60.ppn,
                 group.subtotal.gt90.dpp,
-                group.subtotal.gt90.ppn
+                group.subtotal.gt90.ppn,
             ]);
         });
 
-        // Add grand total row
+        // Grand total
         excelData.push([
-            'GRAND TOTAL',
-            '',
+            "GRAND TOTAL",
+            "",
             grandTotal.dpp,
             grandTotal.ppn,
             grandTotal.lt30.dpp,
@@ -132,20 +155,27 @@ const AgingHD = () => {
             grandTotal.gt60.dpp,
             grandTotal.gt60.ppn,
             grandTotal.gt90.dpp,
-            grandTotal.gt90.ppn
+            grandTotal.gt90.ppn,
         ]);
 
-        // Create worksheet
         const ws = XLSX.utils.aoa_to_sheet(excelData);
 
-        // Create workbook
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'AgingHD');
+        // Auto width
+        const colWidths = excelData[0].map((_, i) => ({
+            wch: Math.max(
+                ...excelData.map((row) => String(row[i] || "").length + 2)
+            ),
+        }));
+        ws["!cols"] = colWidths;
 
-        // Generate Excel file and download
-        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(dataBlob, 'Laporan_Aging_HD.xlsx');
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "AgingHD");
+
+        const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+        const dataBlob = new Blob([excelBuffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        saveAs(dataBlob, "Laporan_Aging_HD.xlsx");
     };
 
     if (isLoading) {
@@ -158,19 +188,24 @@ const AgingHD = () => {
         );
     }
 
+    if (errorMsg) {
+        return (
+            <MainLayout>
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                    <Typography color="error">{errorMsg}</Typography>
+                </Box>
+            </MainLayout>
+        );
+    }
+
     return (
         <MainLayout>
             <Box sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                     <Typography variant="h4" component="h2" gutterBottom>
                         Laporan Aging Hutang Dagang
                     </Typography>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={exportToExcel}
-                        sx={{ ml: 2 }}
-                    >
+                    <Button variant="contained" color="primary" onClick={exportToExcel} sx={{ ml: 2 }}>
                         Export to Excel
                     </Button>
                 </Box>
@@ -206,12 +241,14 @@ const AgingHD = () => {
                                 <React.Fragment key={idx}>
                                     {group.vendors.map((vendor, vIdx) => {
                                         const aging = vendor.aging;
-                                        const saldoDPP = aging.lt30.dpp + aging.gt30.dpp + aging.gt60.dpp + aging.gt90.dpp;
-                                        const saldoPPN = aging.lt30.ppn + aging.gt30.ppn + aging.gt60.ppn + aging.gt90.ppn;
+                                        const saldoDPP =
+                                            aging.lt30.dpp + aging.gt30.dpp + aging.gt60.dpp + aging.gt90.dpp;
+                                        const saldoPPN =
+                                            aging.lt30.ppn + aging.gt30.ppn + aging.gt60.ppn + aging.gt90.ppn;
 
                                         return (
                                             <StyledTableRow key={vIdx}>
-                                                <TableCell>{vIdx === 0 ? group.jenis : ''}</TableCell>
+                                                <TableCell>{vIdx === 0 ? group.jenis : ""}</TableCell>
                                                 <TableCell>{vendor.nama_vendor}</TableCell>
                                                 <TableCell align="right">{formatNumber(saldoDPP)}</TableCell>
                                                 <TableCell align="right">{formatNumber(saldoPPN)}</TableCell>
@@ -227,7 +264,6 @@ const AgingHD = () => {
                                         );
                                     })}
 
-                                    {/* Subtotal per Jenis */}
                                     <SubtotalRow>
                                         <TableCell colSpan={2}>Subtotal {group.jenis}</TableCell>
                                         <TableCell align="right">{formatNumber(group.subtotal.dpp)}</TableCell>
@@ -246,7 +282,6 @@ const AgingHD = () => {
                         </TableBody>
 
                         <TableFooter>
-                            {/* GRAND TOTAL */}
                             <GrandTotalRow>
                                 <TableCell colSpan={2}>GRAND TOTAL</TableCell>
                                 <TableCell align="right">{formatNumber(grandTotal.dpp)}</TableCell>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import MainLayout from '../../layouts/MainLayout';
+import api from "../api";
 
 function PimpinanPage() {
     const [pimpinanList, setPimpinanList] = useState([]);
@@ -12,27 +13,36 @@ function PimpinanPage() {
     }, []);
 
     const fetchPimpinan = async () => {
-        const res = await axios.get('http://localhost:5000/api/pimpinan');
-        setPimpinanList(res.data);
+        try {
+            const res = await api.get("/pimpinan"); // ✅ otomatis ke REACT_APP_API_URL/pimpinan
+            setPimpinanList(res.data);
+        } catch (err) {
+            console.error("❌ Gagal fetch pimpinan:", err);
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/pimpinan', { nama });
-            setNama('');
+            await api.post("/pimpinan", { nama }); // ✅ otomatis ikut REACT_APP_API_URL
+            setNama("");
             setShowModal(false);
             fetchPimpinan();
         } catch (err) {
-            console.error('❌ Gagal menambah pimpinan:', err);
+            console.error("❌ Gagal menambah pimpinan:", err);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Hapus pimpinan ini?')) return;
-        await axios.delete(`http://localhost:5000/api/pimpinan/${id}`);
-        fetchPimpinan();
+        if (!window.confirm("Hapus pimpinan ini?")) return;
+        try {
+            await api.delete(`/pimpinan/${id}`); // ✅ otomatis ikut REACT_APP_API_URL
+            fetchPimpinan();
+        } catch (err) {
+            console.error("❌ Gagal hapus pimpinan:", err);
+        }
     };
+
 
     return (
         <MainLayout>

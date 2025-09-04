@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Table, Button, message, Space, Popconfirm } from 'antd';
 import { DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 import MainLayout from '../../../layouts/MainLayout';
+import api from '../../../api'; // ✅ pakai axios instance
 
 const UploadFaktur = () => {
     const [file, setFile] = useState(null);
@@ -20,7 +20,7 @@ const UploadFaktur = () => {
     const fetchUploadedFiles = async () => {
         setIsFetching(true);
         try {
-            const response = await axios.get('http://localhost:5000/api/faktur/uploads');
+            const response = await api.get('/faktur/uploads'); // ✅ tanpa hardcode
             setUploadedFiles(response.data);
         } catch (error) {
             message.error('Gagal memuat daftar file');
@@ -40,7 +40,7 @@ const UploadFaktur = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!file) {
-            setStatus('Silakan pilih file terlebih dahulu');
+            setStatus({ type: 'error', message: 'Silakan pilih file terlebih dahulu' });
             return;
         }
 
@@ -51,7 +51,7 @@ const UploadFaktur = () => {
         setStatus('');
 
         try {
-            const res = await axios.post('http://localhost:5000/api/faktur/upload', formData, {
+            const res = await api.post('/faktur/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -70,7 +70,7 @@ const UploadFaktur = () => {
 
     const handleDeleteFile = async (fileId) => {
         try {
-            await axios.delete(`http://localhost:5000/api/faktur/uploads/${fileId}`);
+            await api.delete(`/faktur/uploads/${fileId}`); // ✅ tanpa hardcode
             message.success('File berhasil dihapus');
             fetchUploadedFiles(); // Refresh the list after deletion
         } catch (error) {
@@ -105,7 +105,8 @@ const UploadFaktur = () => {
                     <Button
                         icon={<DownloadOutlined />}
                         size="small"
-                        onClick={() => window.open(`http://localhost:5000/api/faktur/uploads/${record._id}/download`, '_blank')}
+                        // ✅ pakai REACT_APP_API_URL, jangan hardcode
+                        onClick={() => window.open(`${process.env.REACT_APP_API_URL}/faktur/uploads/${record._id}/download`, '_blank')}
                     >
                         Unduh
                     </Button>
@@ -115,11 +116,7 @@ const UploadFaktur = () => {
                         okText="Ya"
                         cancelText="Tidak"
                     >
-                        <Button
-                            danger
-                            icon={<DeleteOutlined />}
-                            size="small"
-                        >
+                        <Button danger icon={<DeleteOutlined />} size="small">
                             Hapus
                         </Button>
                     </Popconfirm>

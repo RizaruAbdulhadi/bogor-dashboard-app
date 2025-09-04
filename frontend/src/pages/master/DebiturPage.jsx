@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import MainLayout from '../../layouts/MainLayout';
+import api from '../../api'; // ✅ pakai axios instance
 
 function DebiturPage() {
     const [debiturList, setDebiturList] = useState([]);
@@ -25,15 +25,19 @@ function DebiturPage() {
     }, [searchTerm, debiturList]);
 
     const fetchDebitur = async () => {
-        const res = await axios.get('http://localhost:5000/api/debitur');
-        setDebiturList(res.data);
-        setFilteredList(res.data);
+        try {
+            const res = await api.get('/debitur'); // ✅ bukan localhost lagi
+            setDebiturList(res.data);
+            setFilteredList(res.data);
+        } catch (err) {
+            console.error('❌ Gagal memuat data debitur:', err);
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/debitur', { nama_debitur });
+            await api.post('/debitur', { nama_debitur }); // ✅ pakai api instance
             setNama_Debitur('');
             setShowModal(false);
             fetchDebitur();
@@ -44,8 +48,12 @@ function DebiturPage() {
 
     const handleDelete = async (id) => {
         if (!window.confirm('Hapus debitur ini?')) return;
-        await axios.delete(`http://localhost:5000/api/debitur/${id}`);
-        fetchDebitur();
+        try {
+            await api.delete(`/debitur/${id}`); // ✅ pakai api instance
+            fetchDebitur();
+        } catch (err) {
+            console.error('❌ Gagal menghapus debitur:', err);
+        }
     };
 
     return (

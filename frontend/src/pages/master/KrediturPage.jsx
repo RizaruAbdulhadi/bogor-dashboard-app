@@ -5,11 +5,14 @@ import MainLayout from '../../layouts/MainLayout';
 function KrediturPage() {
     const [krediturList, setKrediturList] = useState([]);
     const [filteredList, setFilteredList] = useState([]);
-    const [nama_kreditur, setNama_Kreditur] = useState('');
-    const [kode_kreditur, setKode_Kreditur] = useState('');
+    const [nama_kreditur, setNamaKreditur] = useState('');
+    const [kode_kreditur, setKodeKreditur] = useState('');
     const [jenis, setJenis] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
+
+    // ✅ gunakan variabel env, bukan hardcode localhost
+    const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
     useEffect(() => {
         fetchKreditur();
@@ -27,17 +30,21 @@ function KrediturPage() {
     }, [searchTerm, krediturList]);
 
     const fetchKreditur = async () => {
-        const res = await axios.get('http://localhost:5000/api/kreditur');
-        setKrediturList(res.data);
-        setFilteredList(res.data);
+        try {
+            const res = await axios.get(`${API_URL}/api/kreditur`);
+            setKrediturList(res.data);
+            setFilteredList(res.data);
+        } catch (err) {
+            console.error("❌ Gagal fetch kreditur:", err);
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/kreditur', { kode_kreditur,nama_kreditur,jenis });
-            setKode_Kreditur('');
-            setNama_Kreditur('');
+            await axios.post(`${API_URL}/api/kreditur`, { kode_kreditur, nama_kreditur, jenis });
+            setKodeKreditur('');
+            setNamaKreditur('');
             setJenis('');
             setShowModal(false);
             fetchKreditur();
@@ -48,8 +55,12 @@ function KrediturPage() {
 
     const handleDelete = async (id) => {
         if (!window.confirm('Hapus kreditur ini?')) return;
-        await axios.delete(`http://localhost:5000/api/kreditur/${id}`);
-        fetchKreditur();
+        try {
+            await axios.delete(`${API_URL}/api/kreditur/${id}`);
+            fetchKreditur();
+        } catch (err) {
+            console.error("❌ Gagal hapus kreditur:", err);
+        }
     };
 
     return (
@@ -67,7 +78,7 @@ function KrediturPage() {
 
                 <input
                     type="text"
-                    placeholder="Cari nama debitur (min 3 huruf)..."
+                    placeholder="Cari nama kreditur (min 3 huruf)..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-1/3 mb-4 px-3 py-2 border rounded"
@@ -101,7 +112,7 @@ function KrediturPage() {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="2" className="text-center py-4 text-gray-500">
+                            <td colSpan="4" className="text-center py-4 text-gray-500">
                                 {searchTerm.length < 3
                                     ? 'Masukkan minimal 3 huruf untuk mencari.'
                                     : 'Tidak ada data ditemukan.'}
@@ -121,7 +132,7 @@ function KrediturPage() {
                                     type="text"
                                     placeholder="Kode Kreditur"
                                     value={kode_kreditur}
-                                    onChange={(e) => setKode_Kreditur(e.target.value)}
+                                    onChange={(e) => setKodeKreditur(e.target.value)}
                                     required
                                     className="w-full mb-4 p-2 border rounded"
                                 />
@@ -129,13 +140,13 @@ function KrediturPage() {
                                     type="text"
                                     placeholder="Nama Kreditur"
                                     value={nama_kreditur}
-                                    onChange={(e) => setNama_Kreditur(e.target.value)}
+                                    onChange={(e) => setNamaKreditur(e.target.value)}
                                     required
                                     className="w-full mb-4 p-2 border rounded"
                                 />
                                 <input
                                     type="text"
-                                    placeholder="Pihak 3/BUMN/Afiliasi/Konsinyasi"
+                                    placeholder="Pihak 3 / BUMN / Afiliasi / Konsinyasi"
                                     value={jenis}
                                     onChange={(e) => setJenis(e.target.value)}
                                     required
