@@ -239,8 +239,13 @@ const AgingHD = () => {
                         <TableBody>
                             {data.map((group, idx) => (
                                 <React.Fragment key={idx}>
-                                    {group.vendors.map((vendor, vIdx) => {
-                                        const aging = vendor.aging;
+                                    {(group.vendors || []).map((vendor, vIdx) => {
+                                        const aging = vendor.aging || {
+                                            lt30: { dpp: 0, ppn: 0 },
+                                            gt30: { dpp: 0, ppn: 0 },
+                                            gt60: { dpp: 0, ppn: 0 },
+                                            gt90: { dpp: 0, ppn: 0 },
+                                        };
                                         const saldoDPP =
                                             aging.lt30.dpp + aging.gt30.dpp + aging.gt60.dpp + aging.gt90.dpp;
                                         const saldoPPN =
@@ -265,17 +270,17 @@ const AgingHD = () => {
                                     })}
 
                                     <SubtotalRow>
-                                        <TableCell colSpan={2}>Subtotal {group.jenis}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.lt30.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.lt30.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.gt30.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.gt30.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.gt60.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.gt60.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.gt90.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(group.subtotal.gt90.ppn)}</TableCell>
+                                        <TableCell colSpan={2}>Subtotal {group.jenis || ""}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.lt30?.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.lt30?.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.gt30?.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.gt30?.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.gt60?.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.gt60?.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.gt90?.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal?.gt90?.ppn)}</TableCell>
                                     </SubtotalRow>
                                 </React.Fragment>
                             ))}
@@ -284,18 +289,20 @@ const AgingHD = () => {
                         <TableFooter>
                             <GrandTotalRow>
                                 <TableCell colSpan={2}>GRAND TOTAL</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.dpp)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.ppn)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.lt30.dpp)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.lt30.ppn)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.gt30.dpp)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.gt30.ppn)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.gt60.dpp)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.gt60.ppn)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.gt90.dpp)}</TableCell>
-                                <TableCell align="right">{formatNumber(grandTotal.gt90.ppn)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.dpp)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.ppn)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.lt30?.dpp)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.lt30?.ppn)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.gt30?.dpp)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.gt30?.ppn)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.gt60?.dpp)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.gt60?.ppn)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.gt90?.dpp)}</TableCell>
+                                <TableCell align="right">{formatNumber(grandTotal?.gt90?.ppn)}</TableCell>
                             </GrandTotalRow>
                         </TableFooter>
+
+
                     </Table>
                 </TableContainer>
             </Box>
