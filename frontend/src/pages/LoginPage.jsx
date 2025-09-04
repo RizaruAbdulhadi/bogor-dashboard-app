@@ -16,8 +16,7 @@ function LoginPage() {
         e.preventDefault();
         setError("");
         setIsLoading(true);
-
-        console.log("LoginPage: mulai proses login dengan username =", username);
+        
         console.log("🌍 API_URL =", process.env.REACT_APP_API_URL);
 
 
