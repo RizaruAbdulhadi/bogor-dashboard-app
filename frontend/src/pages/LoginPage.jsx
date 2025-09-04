@@ -18,6 +18,8 @@ function LoginPage() {
         setIsLoading(true);
 
         console.log("LoginPage: mulai proses login dengan username =", username);
+        console.log("🌍 API_URL =", process.env.REACT_APP_API_URL);
+
 
         try {
             const res = await api.post("/auth/login", { username, password });
