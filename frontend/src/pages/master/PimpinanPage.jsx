@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import MainLayout from '../../layouts/MainLayout';
-import api from "../api";
+import api from "../../api";
 
 function PimpinanPage() {
     const [pimpinanList, setPimpinanList] = useState([]);
