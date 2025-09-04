@@ -11,6 +11,7 @@ const krediturRoutes = require('./routes/krediturRoutes');
 const kwitansiRoutes = require('./routes/kwitansiRoutes');
 const fakturRoutes = require('./routes/statusFaktur');
 const agingHDRoutes = require('./routes/agingHDRoutes');
+const statusFakturRoutes = require('./routes/statusFaktur');
 
 require("dotenv").config({ path: "db.env" });
 
@@ -36,6 +37,9 @@ app.use('/api/kreditur', krediturRoutes);
 app.use('/api/kwitansi', kwitansiRoutes);
 app.use('/api/faktur', fakturRoutes);
 app.use('/api/aging-hd', agingHDRoutes);
+app.use('/api/faktur', statusFakturRoutes);
+app.use('/api/faktur/uploads', statusFakturRoutes);
+app.use('/api/aging-hd', statusFakturRoutes);
 
 app.get("/api/health", (req, res) => {
     res.json({ status: "OK", message: "Server is running" });
