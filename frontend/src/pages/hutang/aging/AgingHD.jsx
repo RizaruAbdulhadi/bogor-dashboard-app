@@ -65,6 +65,7 @@ const AgingHD = () => {
         const fetchData = async () => {
             try {
                 const res = await axios.get(`${API_URL}/api/aging-hd`);
+                console.log("✅ API AgingHD:", res.data);
                 setData(res.data.data);
                 setGrandTotal(res.data.grandTotal);
             } catch (err) {
