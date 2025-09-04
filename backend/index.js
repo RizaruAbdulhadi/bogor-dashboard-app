@@ -3,6 +3,14 @@ const cors = require("cors");
 const os = require("os");
 const sequelize = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
+const rekeningRoutes = require('./routes/rekeningRoutes');
+const pimpinanRoutes = require('./routes/pimpinanRoutes');
+const debiturRoutes = require('./routes/debitur');
+const outletRoutes = require('./routes/outletRoutes');
+const krediturRoutes = require('./routes/krediturRoutes');
+const kwitansiRoutes = require('./routes/kwitansiRoutes');
+const fakturRoutes = require('./routes/statusFaktur');
+const agingHDRoutes = require('./routes/agingHDRoutes');
 
 require("dotenv").config({ path: "db.env" });
 
@@ -20,6 +28,14 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use('/api/rekening', rekeningRoutes);
+app.use('/api/pimpinan', pimpinanRoutes);
+app.use('/api/debitur', debiturRoutes);
+app.use('/api/outlet', outletRoutes);
+app.use('/api/kreditur', krediturRoutes);
+app.use('/api/kwitansi', kwitansiRoutes);
+app.use('/api/faktur', fakturRoutes);
+app.use('/api/aging-hd', agingHDRoutes);
 
 app.get("/api/health", (req, res) => {
     res.json({ status: "OK", message: "Server is running" });
