@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import api from "../api"; // ✅ pakai axios instance
+import api from "../api";
 
 function LoginPage() {
     const [username, setUsername] = useState("");
@@ -17,9 +17,6 @@ function LoginPage() {
         setError("");
         setIsLoading(true);
 
-        console.log("🌍 API_URL =", process.env.REACT_APP_API_URL);
-
-
         try {
             const res = await api.post("/auth/login", { username, password });
             console.log("LoginPage: response =", res.data);
@@ -27,25 +24,24 @@ function LoginPage() {
             if (res.data.success) {
                 // ✅ Simpan ke localStorage
                 localStorage.setItem("token", res.data.token);
-                localStorage.setItem("role", res.data.role);
-                localStorage.setItem("user", JSON.stringify(res.data.user));
+                localStorage.setItem("user", JSON.stringify({
+                    username: res.data.username,
+                    role: res.data.role,
+                }));
 
-                console.log("LoginPage: data disimpan ke localStorage");
-
-                // ✅ Simpan ke AuthContext
+                // ✅ Update AuthContext
                 login({
                     username: res.data.username,
                     role: res.data.role,
-                    userData: res.data.user,
                 });
 
-                // ✅ Redirect ke dashboard
+                // ✅ Arahkan ke dashboard
                 navigate("/dashboard", { replace: true });
             } else {
                 setError(res.data.message || "Login gagal");
             }
         } catch (err) {
-            console.error("LoginPage: error saat login =", err);
+            console.error("LoginPage: error =", err);
             setError(
                 err.response?.data?.message ||
                 "Tidak bisa terhubung ke server. Periksa backend API."
@@ -100,7 +96,6 @@ function LoginPage() {
                     </button>
                 </form>
 
-                {/* ✅ Tidak perlu tulis ulang BASE_URL manual */}
                 <p className="mt-4 text-xs text-center text-gray-500">
                     API: {process.env.REACT_APP_API_URL}
                 </p>

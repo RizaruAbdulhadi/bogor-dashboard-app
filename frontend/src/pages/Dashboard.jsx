@@ -1,28 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import MainLayout from '../layouts/MainLayout';
+import React, { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+import MainLayout from "../layouts/MainLayout";
 
 function Dashboard() {
-    const navigate = useNavigate();
-    const [user, setUser] = useState(null);
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-
-        if (!storedUser) {
-            navigate('/login'); // user tidak ada, arahkan ke login
-            return;
-        }
-
-        try {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-        } catch (e) {
-            console.error('Gagal parsing user dari localStorage', e);
-            localStorage.removeItem('user');
-            navigate('/login');
-        }
-    }, [navigate]);
+    const { user } = useContext(AuthContext);
 
     if (!user) {
         return (
@@ -34,7 +15,6 @@ function Dashboard() {
 
     return (
         <MainLayout>
-
             <h1 className="text-3xl font-bold mb-4">Selamat datang, {user.username}!</h1>
             <p className="text-lg text-gray-700">
                 Role: <span className="font-semibold">{user.role}</span>
@@ -44,7 +24,6 @@ function Dashboard() {
                 <h2 className="text-xl font-semibold mb-2">Dashboard Utama</h2>
                 <p>Ini adalah halaman setelah login. Anda bisa mengembangkan fitur di sini.</p>
             </div>
-
         </MainLayout>
     );
 }
