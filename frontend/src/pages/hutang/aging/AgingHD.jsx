@@ -40,7 +40,7 @@ const AgingHD = () => {
     const agingReport = {
         getAgingReport: async (endDate) => {
             try {
-                const response = await api.get(`/aging-report?end_date=${endDate}`);
+                const response = await api.get(`/aging-hd?end_date=${endDate}`);
                 return response.data;
             } catch (error) {
                 throw new Error(error.response?.data?.error || 'Gagal mengambil data aging');
