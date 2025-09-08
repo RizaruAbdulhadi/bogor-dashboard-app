@@ -1,13 +1,30 @@
 const { StatusFaktur, Kreditur } = require('../models');
 const moment = require('moment');
+const { Op } = require('sequelize');
 
 exports.getAgingData = async (req, res) => {
     try {
+        const { end_date } = req.query;
+
+        if (!end_date) {
+            return res.status(400).json({ error: 'Parameter end_date diperlukan' });
+        }
+
+        const endDate = moment(end_date).startOf('day');
+        if (!endDate.isValid()) {
+            return res.status(400).json({ error: 'Format tanggal tidak valid' });
+        }
+
         const fakturs = await StatusFaktur.findAll({
-            include: [{ model: Kreditur, as: 'kreditur', attributes: ['jenis'] }]
+            include: [{ model: Kreditur, as: 'kreditur', attributes: ['jenis'] }],
+            where: {
+                tanggal_penerimaan: {
+                    [Op.not]: null,
+                    [Op.lte]: endDate.toDate()
+                }
+            }
         });
 
-        const today = moment().startOf('day');
         const groupedJenis = {};
         const grandTotal = {
             dpp: 0,
@@ -24,9 +41,11 @@ exports.getAgingData = async (req, res) => {
 
             const penerimaan = faktur.tanggal_penerimaan;
             const tglPenerimaan = penerimaan ? moment(penerimaan).startOf('day') : null;
-            const days = tglPenerimaan && tglPenerimaan.isValid()
-                ? today.diff(tglPenerimaan, 'days')
-                : null;
+
+            let days = null;
+            if (tglPenerimaan && tglPenerimaan.isValid()) {
+                days = endDate.diff(tglPenerimaan, 'days');
+            }
 
             const dpp = Number(faktur.dpp) || 0;
             const ppn = Number(faktur.ppn) || 0;
@@ -58,19 +77,21 @@ exports.getAgingData = async (req, res) => {
 
             if (days !== null) {
                 let segment = null;
-                if (days < 30) segment = 'lt30';
-                else if (days < 60) segment = 'gt30';
-                else if (days < 90) segment = 'gt60';
+                if (days <= 30) segment = 'lt30';
+                else if (days <= 60) segment = 'gt30';
+                else if (days <= 90) segment = 'gt60';
                 else segment = 'gt90';
 
-                groupedJenis[jenis].vendors[vendor].aging[segment].dpp += dpp;
-                groupedJenis[jenis].vendors[vendor].aging[segment].ppn += ppn;
+                if (segment) {
+                    groupedJenis[jenis].vendors[vendor].aging[segment].dpp += dpp;
+                    groupedJenis[jenis].vendors[vendor].aging[segment].ppn += ppn;
 
-                groupedJenis[jenis].subtotal[segment].dpp += dpp;
-                groupedJenis[jenis].subtotal[segment].ppn += ppn;
+                    groupedJenis[jenis].subtotal[segment].dpp += dpp;
+                    groupedJenis[jenis].subtotal[segment].ppn += ppn;
 
-                grandTotal[segment].dpp += dpp;
-                grandTotal[segment].ppn += ppn;
+                    grandTotal[segment].dpp += dpp;
+                    grandTotal[segment].ppn += ppn;
+                }
             }
 
             // Tambah total keseluruhan
@@ -89,7 +110,7 @@ exports.getAgingData = async (req, res) => {
 
         res.json({ data: result, grandTotal });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        console.error('Error in getAgingData:', err);
+        res.status(500).json({ error: 'Server error: ' + err.message });
     }
 };
