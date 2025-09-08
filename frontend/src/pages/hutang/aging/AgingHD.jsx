@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import MainLayout from "../../../layouts/MainLayout";
 import * as XLSX from "xlsx";
@@ -26,9 +26,6 @@ import {
     CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
@@ -304,8 +301,8 @@ const AgingHD = () => {
 
     // State untuk filter
     const [filterParams, setFilterParams] = useState({
-        startDate: null,
-        endDate: null,
+        startDate: "",
+        endDate: "",
         jenis: "ALL"
     });
     const [jenisOptions, setJenisOptions] = useState([]);
@@ -333,7 +330,7 @@ const AgingHD = () => {
             filtered = filtered.filter(item => item.jenis === filterParams.jenis);
         }
 
-        // Filter berdasarkan tanggal (jika API tidak mendukung filter tanggal)
+        // Filter berdasarkan tanggal
         if (filterParams.startDate) {
             const startDate = new Date(filterParams.startDate);
             filtered = filtered.filter(item => {
@@ -361,8 +358,8 @@ const AgingHD = () => {
 
     const resetFilter = () => {
         setFilterParams({
-            startDate: null,
-            endDate: null,
+            startDate: "",
+            endDate: "",
             jenis: "ALL"
         });
 
@@ -411,7 +408,7 @@ const AgingHD = () => {
         excelData.push(["Laporan Aging Hutang Dagang"]);
         if (filterParams.startDate || filterParams.endDate) {
             excelData.push([
-                `Periode: ${filterParams.startDate ? filterParams.startDate.toLocaleDateString('id-ID') : 'Awal'} - ${filterParams.endDate ? filterParams.endDate.toLocaleDateString('id-ID') : 'Akhir'}`
+                `Periode: ${filterParams.startDate || 'Awal'} - ${filterParams.endDate || 'Akhir'}`
             ]);
         }
         if (filterParams.jenis && filterParams.jenis !== "ALL") {
@@ -502,7 +499,7 @@ const AgingHD = () => {
         const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
         const dataBlob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 
-        const fileName = `Laporan_Aging_HD_${filterParams.startDate ? formatDateToAPI(filterParams.startDate) : 'all'}_${filterParams.endDate ? formatDateToAPI(filterParams.endDate) : 'all'}.xlsx`;
+        const fileName = `Laporan_Aging_HD_${filterParams.startDate || 'all'}_${filterParams.endDate || 'all'}.xlsx`;
         saveAs(dataBlob, fileName);
     };
 
@@ -518,166 +515,168 @@ const AgingHD = () => {
     }
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <MainLayout>
-                <Box sx={{ p: 3 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-                        <Typography variant="h4" gutterBottom>Laporan Aging Hutang Dagang</Typography>
-                        <Button variant="contained" color="primary" onClick={exportToExcel}>Export to Excel</Button>
-                    </Box>
-
-                    {/* Filter Section */}
-                    <Paper sx={{ p: 3, mb: 3 }}>
-                        <Typography variant="h6" gutterBottom>Filter Data</Typography>
-                        <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={12} md={3}>
-                                <DatePicker
-                                    label="Tanggal Mulai Penerimaan"
-                                    value={filterParams.startDate}
-                                    onChange={(date) => handleFilterChange('startDate', date)}
-                                    renderInput={(params) => <TextField {...params} fullWidth />}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                                <DatePicker
-                                    label="Tanggal Akhir"
-                                    value={filterParams.endDate}
-                                    onChange={(date) => handleFilterChange('endDate', date)}
-                                    renderInput={(params) => <TextField {...params} fullWidth />}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Jenis</InputLabel>
-                                    <Select
-                                        value={filterParams.jenis}
-                                        label="Jenis"
-                                        onChange={(e) => handleFilterChange('jenis', e.target.value)}
-                                    >
-                                        {jenisOptions.map((jenis) => (
-                                            <MenuItem key={jenis} value={jenis}>
-                                                {jenis}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                                <Button
-                                    variant="contained"
-                                    onClick={applyFilter}
-                                    sx={{ mr: 2 }}
-                                    fullWidth
-                                >
-                                    Terapkan Filter
-                                </Button>
-                                <Button
-                                    variant="outlined"
-                                    onClick={resetFilter}
-                                    sx={{ mt: 1 }}
-                                    fullWidth
-                                >
-                                    Reset Filter
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </Paper>
-
-                    {errorMsg && (
-                        <Box sx={{ mb: 2 }}>
-                            <Typography color="error">{errorMsg}</Typography>
-                        </Box>
-                    )}
-
-                    <TableContainer component={Paper} sx={{ mb: 4 }}>
-                        <Table size="small" stickyHeader>
-                            <TableHead>
-                                <TableRow>
-                                    <HeaderTableCell></HeaderTableCell>
-                                    <HeaderTableCell>Kode Vendor</HeaderTableCell>
-                                    <HeaderTableCell>Nama Vendor</HeaderTableCell>
-                                    <HeaderTableCell>Jenis</HeaderTableCell>
-                                    <HeaderTableCell align="center">Saldo Akhir DPP</HeaderTableCell>
-                                    <HeaderTableCell align="center">Saldo Akhir PPN</HeaderTableCell>
-                                    <HeaderTableCell align="center">&lt;30 Hari DPP</HeaderTableCell>
-                                    <HeaderTableCell align="center">&lt;30 Hari PPN</HeaderTableCell>
-                                    <HeaderTableCell align="center">&gt;30 Hari DPP</HeaderTableCell>
-                                    <HeaderTableCell align="center">&gt;30 Hari PPN</HeaderTableCell>
-                                    <HeaderTableCell align="center">&gt;60 Hari DPP</HeaderTableCell>
-                                    <HeaderTableCell align="center">&gt;60 Hari PPN</HeaderTableCell>
-                                    <HeaderTableCell align="center">&gt;90 Hari DPP</HeaderTableCell>
-                                    <HeaderTableCell align="center">&gt;90 Hari PPN</HeaderTableCell>
-                                </TableRow>
-                            </TableHead>
-
-                            <TableBody>
-                                {groupedData.length > 0 ? (
-                                    groupedData.map((group, gIdx) => (
-                                        <React.Fragment key={gIdx}>
-                                            {group.vendorGroups.map((vendorGroup, vIdx) => (
-                                                <VendorGroupRow
-                                                    key={vIdx}
-                                                    vendorGroup={vendorGroup}
-                                                    isExpanded={expandedRows[vendorGroup.vendorKey]}
-                                                    toggleExpand={toggleExpand}
-                                                />
-                                            ))}
-                                        </React.Fragment>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={14} align="center">
-                                            <Typography variant="body1" sx={{ py: 3 }}>
-                                                {allData.length === 0 ?
-                                                    "Tidak ada data yang ditemukan" :
-                                                    "Tidak ada data yang sesuai dengan filter"
-                                                }
-                                            </Typography>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-
-                            {groupedData.length > 0 && (
-                                <TableFooter>
-                                    {/* Subtotal per group di bagian bawah */}
-                                    {groupedData.map((group, idx) => (
-                                        <SubtotalRow key={idx}>
-                                            <TableCell colSpan={4} align="left">Subtotal {group.jenis}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.dpp)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.ppn)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.lt30.dpp)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.lt30.ppn)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.gt30.dpp)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.gt30.ppn)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.gt60.dpp)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.gt60.ppn)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.gt90.dpp)}</TableCell>
-                                            <TableCell align="right">{formatNumber(group.subtotal.gt90.ppn)}</TableCell>
-                                        </SubtotalRow>
-                                    ))}
-
-                                    {/* Grand Total */}
-                                    <GrandTotalRow>
-                                        <TableCell colSpan={4} align="left">GRAND TOTAL</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.lt30.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.lt30.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.gt30.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.gt30.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.gt60.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.gt60.ppn)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.gt90.dpp)}</TableCell>
-                                        <TableCell align="right">{formatNumber(grandTotal.gt90.ppn)}</TableCell>
-                                    </GrandTotalRow>
-                                </TableFooter>
-                            )}
-                        </Table>
-                    </TableContainer>
+        <MainLayout>
+            <Box sx={{ p: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                    <Typography variant="h4" gutterBottom>Laporan Aging Hutang Dagang</Typography>
+                    <Button variant="contained" color="primary" onClick={exportToExcel}>Export to Excel</Button>
                 </Box>
-            </MainLayout>
-        </LocalizationProvider>
+
+                {/* Filter Section */}
+                <Paper sx={{ p: 3, mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>Filter Data</Typography>
+                    <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} md={3}>
+                            <TextField
+                                label="Tanggal Mulai Penerimaan"
+                                type="date"
+                                value={filterParams.startDate}
+                                onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                fullWidth
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                            <TextField
+                                label="Tanggal Akhir Penerimaan"
+                                type="date"
+                                value={filterParams.endDate}
+                                onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                fullWidth
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                            <FormControl fullWidth>
+                                <InputLabel>Jenis</InputLabel>
+                                <Select
+                                    value={filterParams.jenis}
+                                    label="Jenis"
+                                    onChange={(e) => handleFilterChange('jenis', e.target.value)}
+                                >
+                                    {jenisOptions.map((jenis) => (
+                                        <MenuItem key={jenis} value={jenis}>
+                                            {jenis}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                            <Button
+                                variant="contained"
+                                onClick={applyFilter}
+                                sx={{ mr: 2 }}
+                                fullWidth
+                            >
+                                Terapkan Filter
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={resetFilter}
+                                sx={{ mt: 1 }}
+                                fullWidth
+                            >
+                                Reset Filter
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Paper>
+
+                {errorMsg && (
+                    <Box sx={{ mb: 2 }}>
+                        <Typography color="error">{errorMsg}</Typography>
+                    </Box>
+                )}
+
+                <TableContainer component={Paper} sx={{ mb: 4 }}>
+                    <Table size="small" stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                <HeaderTableCell></HeaderTableCell>
+                                <HeaderTableCell>Kode Vendor</HeaderTableCell>
+                                <HeaderTableCell>Nama Vendor</HeaderTableCell>
+                                <HeaderTableCell>Jenis</HeaderTableCell>
+                                <HeaderTableCell align="center">Saldo Akhir DPP</HeaderTableCell>
+                                <HeaderTableCell align="center">Saldo Akhir PPN</HeaderTableCell>
+                                <HeaderTableCell align="center">&lt;30 Hari DPP</HeaderTableCell>
+                                <HeaderTableCell align="center">&lt;30 Hari PPN</HeaderTableCell>
+                                <HeaderTableCell align="center">&gt;30 Hari DPP</HeaderTableCell>
+                                <HeaderTableCell align="center">&gt;30 Hari PPN</HeaderTableCell>
+                                <HeaderTableCell align="center">&gt;60 Hari DPP</HeaderTableCell>
+                                <HeaderTableCell align="center">&gt;60 Hari PPN</HeaderTableCell>
+                                <HeaderTableCell align="center">&gt;90 Hari DPP</HeaderTableCell>
+                                <HeaderTableCell align="center">&gt;90 Hari PPN</HeaderTableCell>
+                            </TableRow>
+                        </TableHead>
+
+                        <TableBody>
+                            {groupedData.length > 0 ? (
+                                groupedData.map((group, gIdx) => (
+                                    <React.Fragment key={gIdx}>
+                                        {group.vendorGroups.map((vendorGroup, vIdx) => (
+                                            <VendorGroupRow
+                                                key={vIdx}
+                                                vendorGroup={vendorGroup}
+                                                isExpanded={expandedRows[vendorGroup.vendorKey]}
+                                                toggleExpand={toggleExpand}
+                                            />
+                                        ))}
+                                    </React.Fragment>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={14} align="center">
+                                        <Typography variant="body1" sx={{ py: 3 }}>
+                                            {allData.length === 0 ?
+                                                "Tidak ada data yang ditemukan" :
+                                                "Tidak ada data yang sesuai dengan filter"
+                                            }
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+
+                        {groupedData.length > 0 && (
+                            <TableFooter>
+                                {/* Subtotal per group di bagian bawah */}
+                                {groupedData.map((group, idx) => (
+                                    <SubtotalRow key={idx}>
+                                        <TableCell colSpan={4} align="left">Subtotal {group.jenis}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.lt30.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.lt30.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.gt30.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.gt30.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.gt60.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.gt60.ppn)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.gt90.dpp)}</TableCell>
+                                        <TableCell align="right">{formatNumber(group.subtotal.gt90.ppn)}</TableCell>
+                                    </SubtotalRow>
+                                ))}
+
+                                {/* Grand Total */}
+                                <GrandTotalRow>
+                                    <TableCell colSpan={4} align="left">GRAND TOTAL</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.dpp)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.ppn)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.lt30.dpp)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.lt30.ppn)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.gt30.dpp)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.gt30.ppn)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.gt60.dpp)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.gt60.ppn)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.gt90.dpp)}</TableCell>
+                                    <TableCell align="right">{formatNumber(grandTotal.gt90.ppn)}</TableCell>
+                                </GrandTotalRow>
+                            </TableFooter>
+                        )}
+                    </Table>
+                </TableContainer>
+            </Box>
+        </MainLayout>
     );
 };
 
