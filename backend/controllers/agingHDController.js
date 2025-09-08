@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 exports.getAgingData = async (req, res) => {
     try {
         const { end_date } = req.query;
+        console.log('Request received with end_date:', end_date); // Debug log
 
         if (!end_date) {
             return res.status(400).json({ error: 'Parameter end_date diperlukan' });
@@ -15,15 +16,34 @@ exports.getAgingData = async (req, res) => {
             return res.status(400).json({ error: 'Format tanggal tidak valid' });
         }
 
+        console.log('Querying for tanggal_penerimaan <=', endDate.format('YYYY-MM-DD')); // Debug log
+
         const fakturs = await StatusFaktur.findAll({
             include: [{ model: Kreditur, as: 'kreditur', attributes: ['jenis'] }],
             where: {
-                tanggal_penerimaan: {
+                tanggal_penerimaan: {  // PERUBAHAN PENTING: ganti ke tanggal_penerimaan_faktur
                     [Op.not]: null,
                     [Op.lte]: endDate.toDate()
                 }
             }
         });
+
+        console.log('Found', fakturs.length, 'records'); // Debug log
+
+        // Jika tidak ada data, kembalikan response kosong
+        if (fakturs.length === 0) {
+            return res.json({
+                data: [],
+                grandTotal: {
+                    dpp: 0,
+                    ppn: 0,
+                    lt30: { dpp: 0, ppn: 0 },
+                    gt30: { dpp: 0, ppn: 0 },
+                    gt60: { dpp: 0, ppn: 0 },
+                    gt90: { dpp: 0, ppn: 0 }
+                }
+            });
+        }
 
         const groupedJenis = {};
         const grandTotal = {
@@ -39,12 +59,13 @@ exports.getAgingData = async (req, res) => {
             const jenis = faktur.kreditur?.jenis || 'Lainnya';
             const vendor = faktur.nama_vendor || 'Unknown';
 
-            const penerimaan = faktur.tanggal_penerimaan;
+            const penerimaan = faktur.tanggal_penerimaan;  // PERUBAHAN: ganti ke tanggal_penerimaan_faktur
             const tglPenerimaan = penerimaan ? moment(penerimaan).startOf('day') : null;
 
             let days = null;
             if (tglPenerimaan && tglPenerimaan.isValid()) {
                 days = endDate.diff(tglPenerimaan, 'days');
+                console.log(`Vendor: ${vendor}, Days: ${days}, Date: ${tglPenerimaan.format('YYYY-MM-DD')}`); // Debug log
             }
 
             const dpp = Number(faktur.dpp) || 0;
@@ -108,6 +129,7 @@ exports.getAgingData = async (req, res) => {
             subtotal
         }));
 
+        console.log('Processed', result.length, 'jenis kreditur'); // Debug log
         res.json({ data: result, grandTotal });
     } catch (err) {
         console.error('Error in getAgingData:', err);
