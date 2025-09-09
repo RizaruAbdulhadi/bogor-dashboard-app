@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, message, Space, Popconfirm } from 'antd';
-import { DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import MainLayout from '../../../layouts/MainLayout';
-import api from '../../../api'; // ✅ pakai axios instance
+import api from '../../../api';
 
 const UploadFaktur = () => {
     const [file, setFile] = useState(null);
@@ -20,10 +20,52 @@ const UploadFaktur = () => {
     const fetchUploadedFiles = async () => {
         setIsFetching(true);
         try {
-            const response = await api.get('/faktur/uploads'); // ✅ tanpa hardcode
-            setUploadedFiles(response.data);
+            console.log('Fetching uploaded files...');
+            const response = await api.get('/faktur/uploads');
+            console.log('API Response:', response.data);
+
+            // Debug: Log struktur response
+            if (response.data && typeof response.data === 'object') {
+                console.log('Response keys:', Object.keys(response.data));
+                if (Array.isArray(response.data.files)) {
+                    console.log('Files array length:', response.data.files.length);
+                }
+                if (Array.isArray(response.data)) {
+                    console.log('Direct array length:', response.data.length);
+                }
+            }
+
+            // Pastikan response.data adalah array
+            let filesData = [];
+            if (Array.isArray(response.data)) {
+                filesData = response.data;
+            } else if (response.data && Array.isArray(response.data.files)) {
+                filesData = response.data.files;
+            } else if (response.data && Array.isArray(response.data.data)) {
+                filesData = response.data.data;
+            } else {
+                console.warn('Unexpected response format:', response.data);
+                message.warning('Format data tidak sesuai');
+            }
+
+            // Filter data yang invalid
+            const validFiles = filesData.filter(file =>
+                file &&
+                (file.filename || file.originalname || file.name) &&
+                (file._id || file.id)
+            );
+
+            console.log('Valid files:', validFiles);
+            setUploadedFiles(validFiles);
+
         } catch (error) {
+            console.error('Error fetching files:', error);
+            if (error.response) {
+                console.error('Error response:', error.response.data);
+                console.error('Error status:', error.response.status);
+            }
             message.error('Gagal memuat daftar file');
+            setUploadedFiles([]);
         } finally {
             setIsFetching(false);
         }
@@ -32,6 +74,26 @@ const UploadFaktur = () => {
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
+            // Validasi file type dan size
+            const allowedTypes = [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel',
+                'application/vnd.ms-excel.sheet.macroEnabled.12'
+            ];
+
+            const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+            const isExcelFile = fileExtension === 'xlsx' || fileExtension === 'xls';
+
+            if (!allowedTypes.includes(selectedFile.type) && !isExcelFile) {
+                message.error('Hanya file Excel (.xlsx, .xls) yang diizinkan');
+                return;
+            }
+
+            if (selectedFile.size > 5 * 1024 * 1024) { // 5MB
+                message.error('Ukuran file maksimal 5MB');
+                return;
+            }
+
             setFile(selectedFile);
             setFileName(selectedFile.name);
         }
@@ -56,12 +118,22 @@ const UploadFaktur = () => {
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            setStatus({ type: 'success', message: res.data.message });
+
+            setStatus({ type: 'success', message: res.data.message || 'File berhasil diupload' });
             setFile(null);
             setFileName('');
-            fetchUploadedFiles(); // Refresh the list after upload
+            // Reset input file
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
+
+            // Refresh list setelah upload
+            setTimeout(() => fetchUploadedFiles(), 1000);
+
         } catch (err) {
-            const errorMsg = err.response?.data?.message || 'Gagal upload file';
+            console.error('Upload error:', err);
+            const errorMsg = err.response?.data?.message ||
+                err.response?.data?.error ||
+                'Gagal upload file';
             setStatus({ type: 'error', message: errorMsg });
         } finally {
             setIsLoading(false);
@@ -70,64 +142,152 @@ const UploadFaktur = () => {
 
     const handleDeleteFile = async (fileId) => {
         try {
-            await api.delete(`/faktur/uploads/${fileId}`); // ✅ tanpa hardcode
+            await api.delete(`/faktur/uploads/${fileId}`);
             message.success('File berhasil dihapus');
             fetchUploadedFiles(); // Refresh the list after deletion
         } catch (error) {
-            message.error('Gagal menghapus file');
+            console.error('Delete error:', error);
+            const errorMsg = error.response?.data?.message ||
+                error.response?.data?.error ||
+                'Gagal menghapus file';
+            message.error(errorMsg);
+        }
+    };
+
+    const handleDownloadFile = async (fileId, filename) => {
+        try {
+            const response = await api.get(`/faktur/uploads/${fileId}/download`, {
+                responseType: 'blob'
+            });
+
+            // Create blob link
+            const blob = new Blob([response.data]);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename || 'file.xlsx');
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('Download error:', error);
+            message.error('Gagal mengunduh file');
         }
     };
 
     const columns = [
         {
+            title: 'No',
+            key: 'index',
+            width: 60,
+            render: (_, __, index) => index + 1,
+        },
+        {
             title: 'Nama File',
             dataIndex: 'filename',
             key: 'filename',
-            render: (text) => <span className="font-medium">{text}</span>
+            render: (text, record) => {
+                const fileName = text || record.originalname || record.name;
+                return fileName ? (
+                    <span className="font-medium" title={fileName}>
+                        {fileName}
+                    </span>
+                ) : (
+                    <span className="text-gray-400">No filename</span>
+                );
+            }
         },
         {
             title: 'Tanggal Upload',
             dataIndex: 'uploadDate',
             key: 'uploadDate',
-            render: (date) => new Date(date).toLocaleString()
+            render: (date, record) => {
+                const dateToFormat = date || record.createdAt || record.uploadedAt;
+                return dateToFormat ? (
+                    new Date(dateToFormat).toLocaleString('id-ID')
+                ) : (
+                    <span className="text-gray-400">-</span>
+                );
+            }
         },
         {
             title: 'Ukuran',
             dataIndex: 'size',
             key: 'size',
-            render: (size) => `${(size / 1024).toFixed(2)} KB`
+            render: (size) => {
+                if (!size || size === 0) return <span className="text-gray-400">-</span>;
+                return size > 1024 * 1024
+                    ? `${(size / (1024 * 1024)).toFixed(2)} MB`
+                    : `${(size / 1024).toFixed(2)} KB`;
+            }
+        },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status) => {
+                if (!status) return <span className="text-gray-400">-</span>;
+                return (
+                    <span className={`px-2 py-1 rounded text-xs ${
+                        status === 'processed' || status === 'success' ? 'bg-green-100 text-green-800' :
+                            status === 'error' || status === 'failed' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
+                    }`}>
+                        {status}
+                    </span>
+                );
+            }
         },
         {
             title: 'Aksi',
             key: 'action',
-            render: (_, record) => (
-                <Space size="middle">
-                    <Button
-                        icon={<DownloadOutlined />}
-                        size="small"
-                        // ✅ pakai REACT_APP_API_URL, jangan hardcode
-                        onClick={() => window.open(`${process.env.REACT_APP_API_URL}/faktur/uploads/${record._id}/download`, '_blank')}
-                    >
-                        Unduh
-                    </Button>
-                    <Popconfirm
-                        title="Apakah Anda yakin ingin menghapus file ini?"
-                        onConfirm={() => handleDeleteFile(record._id)}
-                        okText="Ya"
-                        cancelText="Tidak"
-                    >
-                        <Button danger icon={<DeleteOutlined />} size="small">
-                            Hapus
+            width: 200,
+            render: (_, record) => {
+                // Hanya tampilkan aksi untuk record yang valid
+                if (!record._id && !record.id) {
+                    return <span className="text-gray-400">No actions</span>;
+                }
+
+                const fileId = record._id || record.id;
+                const fileName = record.filename || record.originalname || record.name;
+
+                return (
+                    <Space size="middle">
+                        <Button
+                            icon={<DownloadOutlined />}
+                            size="small"
+                            onClick={() => handleDownloadFile(fileId, fileName)}
+                        >
+                            Unduh
                         </Button>
-                    </Popconfirm>
-                </Space>
-            )
+                        <Popconfirm
+                            title="Apakah Anda yakin ingin menghapus file ini?"
+                            onConfirm={() => handleDeleteFile(fileId)}
+                            okText="Ya"
+                            cancelText="Tidak"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <Button
+                                danger
+                                icon={<DeleteOutlined />}
+                                size="small"
+                            >
+                                Hapus
+                            </Button>
+                        </Popconfirm>
+                    </Space>
+                );
+            }
         }
     ];
 
     return (
         <MainLayout>
-            <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+            <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Upload Data Faktur</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-6 mb-8">
@@ -146,13 +306,14 @@ const UploadFaktur = () => {
                                     accept=".xlsx, .xls"
                                     onChange={handleFileChange}
                                     className="hidden"
+                                    id="fileInput"
                                 />
                             </label>
                             <div className="flex-1">
                                 {fileName ? (
                                     <div className="p-3 bg-gray-50 rounded border border-gray-200">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-gray-700 truncate max-w-xs">
+                                            <span className="text-sm font-medium text-gray-700 truncate max-w-xs" title={fileName}>
                                                 {fileName}
                                             </span>
                                             <button
@@ -160,6 +321,8 @@ const UploadFaktur = () => {
                                                 onClick={() => {
                                                     setFile(null);
                                                     setFileName('');
+                                                    const fileInput = document.getElementById('fileInput');
+                                                    if (fileInput) fileInput.value = '';
                                                 }}
                                                 className="text-red-500 hover:text-red-700"
                                             >
@@ -167,6 +330,9 @@ const UploadFaktur = () => {
                                                     <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-1">
+                                            Ukuran: {(file.size / 1024).toFixed(2)} KB
                                         </div>
                                     </div>
                                 ) : (
@@ -215,17 +381,42 @@ const UploadFaktur = () => {
                 )}
 
                 <div className="mt-8">
-                    <h3 className="text-lg font-medium text-gray-800 mb-4">Daftar File Terupload</h3>
-                    <Table
-                        columns={columns}
-                        dataSource={uploadedFiles}
-                        rowKey="_id"
-                        loading={isFetching}
-                        locale={{
-                            emptyText: 'Belum ada file yang diupload'
-                        }}
-                        pagination={{ pageSize: 5 }}
-                    />
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium text-gray-800">Daftar File Terupload</h3>
+                        <Button
+                            icon={<ReloadOutlined />}
+                            size="small"
+                            onClick={fetchUploadedFiles}
+                            loading={isFetching}
+                        >
+                            Refresh
+                        </Button>
+                    </div>
+
+                    {uploadedFiles.length === 0 && !isFetching ? (
+                        <div className="text-center py-8 text-gray-500">
+                            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m0 0V9m0 8h6m-6-4h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="mt-2">Belum ada file yang diupload</p>
+                        </div>
+                    ) : (
+                        <Table
+                            columns={columns}
+                            dataSource={uploadedFiles}
+                            rowKey={(record) => record._id || record.id || Math.random()}
+                            loading={isFetching}
+                            pagination={{
+                                pageSize: 10,
+                                showSizeChanger: true,
+                                showQuickJumper: true,
+                                showTotal: (total, range) =>
+                                    `${range[0]}-${range[1]} dari ${total} file`,
+                                total: uploadedFiles.length
+                            }}
+                            scroll={{ x: 800 }}
+                        />
+                    )}
                 </div>
 
                 <div className="mt-8 p-4 bg-blue-50 rounded-md border border-blue-200">
@@ -233,6 +424,7 @@ const UploadFaktur = () => {
                     <ul className="list-disc pl-5 text-sm text-blue-700 space-y-1">
                         <li>Pastikan file dalam format Excel (.xlsx atau .xls)</li>
                         <li>File harus sesuai dengan template yang telah ditentukan</li>
+                        <li>Kolom yang wajib ada: No Faktur, Tanggal Faktur, DPP, PPN, dll</li>
                         <li>Maksimal ukuran file: 5MB</li>
                         <li>Proses upload mungkin memakan waktu beberapa saat</li>
                     </ul>
