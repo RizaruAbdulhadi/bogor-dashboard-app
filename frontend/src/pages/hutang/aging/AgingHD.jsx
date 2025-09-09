@@ -373,7 +373,6 @@ const AgingResults = ({ data, endDate }) => {
 };
 
 const Row = ({ vendor, level = 0 }) => {
-    const [open, setOpen] = React.useState(false);
     const formatCurrency = (amount) => {
         const n = toNumber(amount);
         return new Intl.NumberFormat('id-ID', {
@@ -431,27 +430,58 @@ const AgingTable = ({ data }) => {
             <Table size="small" stickyHeader>
                 <TableHead>
                     <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                        <TableCell rowSpan={2}>Jenis Kreditur / Vendor</TableCell>
-                        <TableCell colSpan={3} align="center">0–30 Hari</TableCell>
-                        <TableCell colSpan={3} align="center">31–60 Hari</TableCell>
-                        <TableCell colSpan={3} align="center">61–90 Hari</TableCell>
-                        <TableCell colSpan={3} align="center">&gt;90 Hari</TableCell>
-                        <TableCell colSpan={3} align="center">Total</TableCell>
+                        <TableCell rowSpan={2} align="center">Jenis Kreditur / Vendor</TableCell>
+
+                        {/* 0-30 Hari */}
+                        <TableCell colSpan={3} align="center">
+                            0 - 30 Hari
+                        </TableCell>
+
+                        {/* 31-60 Hari */}
+                        <TableCell colSpan={3} align="center">
+                            31 - 60 Hari
+                        </TableCell>
+
+                        {/* 61-90 Hari */}
+                        <TableCell colSpan={3} align="center">
+                            61 - 90 Hari
+                        </TableCell>
+
+                        {/* >90 Hari */}
+                        <TableCell colSpan={3} align="center">
+                            > 90 Hari
+                        </TableCell>
+
+                        {/* Total */}
+                        <TableCell colSpan={3} align="center">
+                            Total
+                        </TableCell>
                     </TableRow>
+
                     <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                        {/* Sub-headers for each period */}
+                        {/* Sub-headers untuk setiap periode */}
+
+                        {/* 0-30 Hari */}
                         <TableCell align="center">DPP</TableCell>
                         <TableCell align="center">PPN</TableCell>
                         <TableCell align="center">Total</TableCell>
+
+                        {/* 31-60 Hari */}
                         <TableCell align="center">DPP</TableCell>
                         <TableCell align="center">PPN</TableCell>
                         <TableCell align="center">Total</TableCell>
+
+                        {/* 61-90 Hari */}
                         <TableCell align="center">DPP</TableCell>
                         <TableCell align="center">PPN</TableCell>
                         <TableCell align="center">Total</TableCell>
+
+                        {/* >90 Hari */}
                         <TableCell align="center">DPP</TableCell>
                         <TableCell align="center">PPN</TableCell>
                         <TableCell align="center">Total</TableCell>
+
+                        {/* Total */}
                         <TableCell align="center">DPP</TableCell>
                         <TableCell align="center">PPN</TableCell>
                         <TableCell align="center">Total</TableCell>
