@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, message, Space, Popconfirm, Spin, Progress } from 'antd';
+import { Button, message, Space, Popconfirm, Spin, Progress } from 'antd';
 import { DeleteOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import MainLayout from '../../../layouts/MainLayout';
 import api from '../../../api';
@@ -470,52 +470,6 @@ const UploadFaktur = () => {
                     </div>
                 )}
 
-                <div className="mt-8">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-medium text-gray-800">Daftar File Terupload</h3>
-                        <Space>
-                            <span className="text-sm text-gray-500">
-                                Total: {uploadedFiles.length} file
-                            </span>
-                            <Button
-                                icon={<ReloadOutlined />}
-                                size="small"
-                                onClick={fetchUploadedFiles}
-                                loading={isFetching}
-                                title="Refresh data"
-                            >
-                                Refresh
-                            </Button>
-                        </Space>
-                    </div>
-
-                    {uploadedFiles.length === 0 && !isFetching ? (
-                        <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg">
-                            <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m0 0V9m0 8h6m-6-4h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="text-lg font-medium">Belum ada file yang diupload</p>
-                            <p className="text-sm mt-1">Upload file Excel pertama Anda untuk melihatnya di sini</p>
-                        </div>
-                    ) : (
-                        <Table
-                            columns={columns}
-                            dataSource={uploadedFiles}
-                            rowKey={(record) => record._id || record.id || record.fileId || Math.random()}
-                            loading={isFetching}
-                            pagination={{
-                                pageSize: 10,
-                                showSizeChanger: true,
-                                showQuickJumper: true,
-                                showTotal: (total, range) =>
-                                    `${range[0]}-${range[1]} dari ${total} file`,
-                                total: uploadedFiles.length
-                            }}
-                            scroll={{ x: 800 }}
-                        />
-                    )}
-                </div>
-
                 <div className="mt-8 p-4 bg-blue-50 rounded-md border border-blue-200">
                     <h3 className="text-lg font-medium text-blue-800 mb-2">Petunjuk Upload</h3>
                     <ul className="list-disc pl-5 text-sm text-blue-700 space-y-1">
@@ -524,7 +478,6 @@ const UploadFaktur = () => {
                         <li>Kolom yang wajib ada: No Faktur, Tanggal Faktur, DPP, PPN, dll</li>
                         <li><strong>Maksimal ukuran file: 15MB</strong></li>
                         <li>Proses upload mungkin memakan waktu beberapa saat</li>
-                        <li>Jika data tidak muncul, klik tombol "Refresh"</li>
                         <li>Jika terjadi timeout, periksa daftar file - data mungkin telah berhasil diproses</li>
                     </ul>
                 </div>
