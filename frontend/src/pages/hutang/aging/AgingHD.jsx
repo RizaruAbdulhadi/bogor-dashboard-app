@@ -267,39 +267,88 @@ const AgingResults = ({ data, endDate }) => {
         );
     }
 
+    const formatCurrency = (amount) => {
+        const n = toNumber(amount);
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(n);
+    };
+
     const handleExportExcel = () => {
         const wb = XLSX.utils.book_new();
         const wsData = [];
 
-        // Header
+        // Header utama
         wsData.push([
             "Jenis Kreditur / Vendor",
-            "0–30 Hari (DPP)", "0–30 Hari (PPN)", "0–30 Hari (Total)",
-            "31–60 Hari (DPP)", "31–60 Hari (PPN)", "31–60 Hari (Total)",
-            "61–90 Hari (DPP)", "61–90 Hari (PPN)", "61–90 Hari (Total)",
-            ">90 Hari (DPP)", ">90 Hari (PPN)", ">90 Hari (Total)",
-            "Total DPP", "Total PPN", "Grand Total"
+            "", "", "", // Placeholder untuk < 30 Hari
+            "", "", "", // Placeholder untuk 31 - 60 Hari
+            "", "", "", // Placeholder untuk 61 - 90 Hari
+            "", "", "", // Placeholder untuk > 90 Hari
+            "", "", ""  // Placeholder untuk Total
         ]);
+
+        // Header kedua (sub-header)
+        const headers = [
+            "Jenis Kreditur / Vendor",
+            // < 30 Hari
+            "DPP", "PPN", "Total",
+            // 31 - 60 Hari
+            "DPP", "PPN", "Total",
+            // 61 - 90 Hari
+            "DPP", "PPN", "Total",
+            // > 90 Hari
+            "DPP", "PPN", "Total",
+            // Total
+            "DPP", "PPN", "Total"
+        ];
+        wsData.push(headers);
+
+        // Header ketiga (periode)
+        const periodHeaders = [
+            "",
+            // < 30 Hari
+            "< 30 Hari", "< 30 Hari", "< 30 Hari",
+            // 31 - 60 Hari
+            "31 - 60 Hari", "31 - 60 Hari", "31 - 60 Hari",
+            // 61 - 90 Hari
+            "61 - 90 Hari", "61 - 90 Hari", "61 - 90 Hari",
+            // > 90 Hari
+            "> 90 Hari", "> 90 Hari", "> 90 Hari",
+            // Total
+            "Total", "Total", "Total"
+        ];
+        wsData.push(periodHeaders);
 
         // Isi data
         data.data.forEach((jenisGroup) => {
-            wsData.push([jenisGroup.jenis]); // header jenis
+            // Header jenis
+            wsData.push([jenisGroup.jenis, ...Array(15).fill("")]);
 
+            // Data vendor
             jenisGroup.vendors.forEach((vendor) => {
                 wsData.push([
                     "   " + vendor.nama_vendor,
+                    // < 30 Hari
                     vendor.aging.lt30.dpp,
                     vendor.aging.lt30.ppn,
                     vendor.aging.lt30.total,
+                    // 31 - 60 Hari
                     vendor.aging.gt30.dpp,
                     vendor.aging.gt30.ppn,
                     vendor.aging.gt30.total,
+                    // 61 - 90 Hari
                     vendor.aging.gt60.dpp,
                     vendor.aging.gt60.ppn,
                     vendor.aging.gt60.total,
+                    // > 90 Hari
                     vendor.aging.gt90.dpp,
                     vendor.aging.gt90.ppn,
                     vendor.aging.gt90.total,
+                    // Total
                     vendor.dpp,
                     vendor.ppn,
                     vendor.total,
@@ -309,47 +358,113 @@ const AgingResults = ({ data, endDate }) => {
             // Subtotal per jenis
             wsData.push([
                 `Subtotal ${jenisGroup.jenis}`,
+                // < 30 Hari
                 jenisGroup.subtotal.lt30.dpp,
                 jenisGroup.subtotal.lt30.ppn,
                 jenisGroup.subtotal.lt30.total,
+                // 31 - 60 Hari
                 jenisGroup.subtotal.gt30.dpp,
                 jenisGroup.subtotal.gt30.ppn,
                 jenisGroup.subtotal.gt30.total,
+                // 61 - 90 Hari
                 jenisGroup.subtotal.gt60.dpp,
                 jenisGroup.subtotal.gt60.ppn,
                 jenisGroup.subtotal.gt60.total,
+                // > 90 Hari
                 jenisGroup.subtotal.gt90.dpp,
                 jenisGroup.subtotal.gt90.ppn,
                 jenisGroup.subtotal.gt90.total,
+                // Total
                 jenisGroup.subtotal.dpp,
                 jenisGroup.subtotal.ppn,
                 jenisGroup.subtotal.total,
             ]);
+
+            // Baris kosong sebagai pemisah
+            wsData.push(Array(16).fill(""));
         });
 
         // Grand total
         wsData.push([
             "GRAND TOTAL",
+            // < 30 Hari
             data.grandTotal.lt30.dpp,
             data.grandTotal.lt30.ppn,
             data.grandTotal.lt30.total,
+            // 31 - 60 Hari
             data.grandTotal.gt30.dpp,
             data.grandTotal.gt30.ppn,
             data.grandTotal.gt30.total,
+            // 61 - 90 Hari
             data.grandTotal.gt60.dpp,
             data.grandTotal.gt60.ppn,
             data.grandTotal.gt60.total,
+            // > 90 Hari
             data.grandTotal.gt90.dpp,
             data.grandTotal.gt90.ppn,
             data.grandTotal.gt90.total,
+            // Total
             data.grandTotal.dpp,
             data.grandTotal.ppn,
             data.grandTotal.total,
         ]);
 
         const ws = XLSX.utils.aoa_to_sheet(wsData);
-        XLSX.utils.book_append_sheet(wb, ws, "Aging Report");
 
+        // Merge cells untuk header periode
+        const mergeCells = [
+            // < 30 Hari
+            { s: { r: 0, c: 1 }, e: { r: 0, c: 3 } },
+            // 31 - 60 Hari
+            { s: { r: 0, c: 4 }, e: { r: 0, c: 6 } },
+            // 61 - 90 Hari
+            { s: { r: 0, c: 7 }, e: { r: 0, c: 9 } },
+            // > 90 Hari
+            { s: { r: 0, c: 10 }, e: { r: 0, c: 12 } },
+            // Total
+            { s: { r: 0, c: 13 }, e: { r: 0, c: 15 } }
+        ];
+
+        // Set nilai untuk merged cells
+        ws['A1'] = { v: "Jenis Kreditur / Vendor", t: 's' };
+        ws['B1'] = { v: "< 30 Hari", t: 's' };
+        ws['E1'] = { v: "31 - 60 Hari", t: 's' };
+        ws['H1'] = { v: "61 - 90 Hari", t: 's' };
+        ws['K1'] = { v: "> 90 Hari", t: 's' };
+        ws['N1'] = { v: "Total", t: 's' };
+
+        ws['!merges'] = mergeCells;
+
+        // Styling untuk header
+        const headerStyle = {
+            font: { bold: true },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            fill: { fgColor: { rgb: "F5F5F5" } }
+        };
+
+        // Terapkan styling ke header
+        for (let c = 0; c < 16; c++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c });
+            if (ws[cellAddress]) {
+                ws[cellAddress].s = headerStyle;
+            }
+        }
+
+        for (let c = 0; c < 16; c++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 1, c });
+            if (ws[cellAddress]) {
+                ws[cellAddress].s = headerStyle;
+            }
+        }
+
+        for (let c = 0; c < 16; c++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 2, c });
+            if (ws[cellAddress]) {
+                ws[cellAddress].s = headerStyle;
+            }
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, "Aging Report");
         XLSX.writeFile(wb, `Aging_Report_${endDate.format("YYYYMMDD")}.xlsx`);
     };
 
