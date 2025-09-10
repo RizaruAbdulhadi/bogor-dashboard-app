@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, message, Space, Popconfirm, Spin } from 'antd';
+import { Table, Button, message, Space, Popconfirm, Spin, Progress } from 'antd';
 import { DeleteOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import MainLayout from '../../../layouts/MainLayout';
 import api from '../../../api';
@@ -11,6 +11,7 @@ const UploadFaktur = () => {
     const [fileName, setFileName] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState([]);
     const [isFetching, setIsFetching] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     // Fetch uploaded files on component mount
     useEffect(() => {
@@ -128,6 +129,7 @@ const UploadFaktur = () => {
 
         setIsLoading(true);
         setStatus('');
+        setUploadProgress(0);
 
         try {
             console.log('🚀 Starting file upload...');
@@ -135,7 +137,13 @@ const UploadFaktur = () => {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
-                timeout: 30000 // 30 detik timeout
+                timeout: 120000, // 120 detik timeout
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                    setUploadProgress(percentCompleted);
+                }
             });
 
             console.log('✅ Upload success:', res.data);
@@ -147,6 +155,7 @@ const UploadFaktur = () => {
 
             setFile(null);
             setFileName('');
+            setUploadProgress(0);
 
             // Reset input file
             const fileInput = document.getElementById('fileInput');
@@ -155,16 +164,21 @@ const UploadFaktur = () => {
             // Tunggu sebentar lalu refresh data
             message.success('File berhasil diupload! Memuat data terbaru...');
 
-            // Delay untuk memastikan backend sudah selesai memproses
-            setTimeout(() => {
-                fetchUploadedFiles();
-            }, 2000);
+            // Refresh data setelah upload berhasil
+            fetchUploadedFiles();
 
         } catch (err) {
             console.error('❌ Upload error:', err);
             let errorMsg = 'Gagal upload file';
 
-            if (err.response) {
+            if (err.code === 'ECONNABORTED') {
+                console.log('⏰ Upload timeout, tetapi mungkin berhasil di server');
+                errorMsg = 'Upload memakan waktu lebih lama dari biasanya. ' +
+                    'Data mungkin telah berhasil diproses. Silakan periksa daftar file.';
+
+                // Tetap refresh data karena mungkin berhasil di server
+                fetchUploadedFiles();
+            } else if (err.response) {
                 console.error('📡 Response error:', err.response.data);
                 errorMsg = err.response.data?.message ||
                     err.response.data?.error ||
@@ -181,6 +195,7 @@ const UploadFaktur = () => {
             message.error(errorMsg);
         } finally {
             setIsLoading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -402,6 +417,24 @@ const UploadFaktur = () => {
                         </div>
                     </div>
 
+                    {/* Progress Bar */}
+                    {isLoading && uploadProgress > 0 && (
+                        <div className="w-full">
+                            <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-700">Upload Progress</span>
+                                <span className="text-sm font-medium text-gray-700">{uploadProgress}%</span>
+                            </div>
+                            <Progress
+                                percent={uploadProgress}
+                                status={uploadProgress === 100 ? "success" : "active"}
+                                strokeColor={{
+                                    from: '#108ee9',
+                                    to: '#87d068',
+                                }}
+                            />
+                        </div>
+                    )}
+
                     <div className="flex justify-end">
                         <button
                             type="submit"
@@ -411,7 +444,7 @@ const UploadFaktur = () => {
                             {isLoading ? (
                                 <>
                                     <Spin size="small" className="mr-2" />
-                                    Memproses...
+                                    {uploadProgress === 100 ? 'Memproses...' : 'Uploading...'}
                                 </>
                             ) : (
                                 'Upload File'
@@ -492,6 +525,7 @@ const UploadFaktur = () => {
                         <li><strong>Maksimal ukuran file: 15MB</strong></li>
                         <li>Proses upload mungkin memakan waktu beberapa saat</li>
                         <li>Jika data tidak muncul, klik tombol "Refresh"</li>
+                        <li>Jika terjadi timeout, periksa daftar file - data mungkin telah berhasil diproses</li>
                     </ul>
                 </div>
             </div>
