@@ -9,6 +9,7 @@ const kwitansiRoutes = require('./routes/kwitansiRoutes');
 const fakturRoutes = require('./routes/statusFaktur');
 const krediturRoutes = require('./routes/krediturRoutes');
 const agingHDRoutes = require('./routes/agingHDRoutes');
+const detailBeliRoutes = require('./routes/detailBeli');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/kwitansi', kwitansiRoutes);
 app.use('/api/faktur', fakturRoutes);
 app.use('/api/kreditur', krediturRoutes);
 app.use('/api', agingHDRoutes);
+app.use('/api/detailbeli', detailBeliRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {

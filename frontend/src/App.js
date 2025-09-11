@@ -11,7 +11,8 @@ import MasterBank from "./pages/master/MasterBank";
 import PimpinanPage from "./pages/master/PimpinanPage";
 import DebiturPage from "./pages/master/DebiturPage";
 import MasterOutlet from "./pages/master/Outlet";
-import UploadFaktur from "./pages/hutang/upload/UploadFaktur";
+import UploadFaktur from "./pages/hutang/upload-faktur/UploadFaktur";
+import UploadBeli from "./pages/hutang/upload-faktur-beli/UploadBeli";
 import DataFaktur from "./pages/hutang/data/DataFaktur";
 import AgingHD from "./pages/hutang/aging/AgingHD";
 import KrediturPage from "./pages/master/KrediturPage";
@@ -93,7 +94,7 @@ function App() {
                         }
                     />
                     <Route
-                        path="/hutang/upload"
+                        path="/hutang/upload-faktur"
                         element={
                             <PrivateRoute>
                                 <UploadFaktur />
@@ -113,6 +114,14 @@ function App() {
                         element={
                             <PrivateRoute>
                                 <AgingHD />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/hutang/upload-faktur-beli"
+                        element={
+                            <PrivateRoute>
+                                <UploadBeli />
                             </PrivateRoute>
                         }
                     />

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button, message, Space, Popconfirm, Spin, Progress } from 'antd';
+import { Button, message, Space, Popconfirm, Spin, Progress, Table } from 'antd';
 import { DeleteOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import MainLayout from '../../../layouts/MainLayout';
 import api from '../../../api';
 
-const UploadFaktur = () => {
+const UploadBeli = () => {
     const [file, setFile] = useState(null);
     const [status, setStatus] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +22,7 @@ const UploadFaktur = () => {
         setIsFetching(true);
         try {
             console.log('🔄 Fetching uploaded files...');
-            const response = await api.get('/faktur/uploads');
+            const response = await api.get('/detailbeli/uploads');
             console.log('📦 API Response:', response.data);
 
             // Handle berbagai format response
@@ -132,8 +132,8 @@ const UploadFaktur = () => {
         setUploadProgress(0);
 
         try {
-            console.log('🚀 Starting file upload...');
-            const res = await api.post('/faktur/upload', formData, {
+            console.log('🚀 Starting file upload-faktur...');
+            const res = await api.post('/detailbeli/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
@@ -164,12 +164,12 @@ const UploadFaktur = () => {
             // Tunggu sebentar lalu refresh data
             message.success('File berhasil diupload! Memuat data terbaru...');
 
-            // Refresh data setelah upload berhasil
+            // Refresh data setelah upload-faktur berhasil
             fetchUploadedFiles();
 
         } catch (err) {
             console.error('❌ Upload error:', err);
-            let errorMsg = 'Gagal upload file';
+            let errorMsg = 'Gagal upload-faktur file';
 
             if (err.code === 'ECONNABORTED') {
                 console.log('⏰ Upload timeout, tetapi mungkin berhasil di server');
@@ -202,7 +202,7 @@ const UploadFaktur = () => {
     const handleDeleteFile = async (fileId) => {
         try {
             console.log('🗑️ Deleting file:', fileId);
-            await api.delete(`/faktur/uploads/${fileId}`);
+            await api.delete(`/detailbeli/uploads/${fileId}`);
             message.success('File berhasil dihapus');
 
             // Refresh list setelah deletion
@@ -220,7 +220,7 @@ const UploadFaktur = () => {
     const handleDownloadFile = async (fileId, filename) => {
         try {
             console.log('📥 Downloading file:', fileId, filename);
-            const response = await api.get(`/faktur/uploads/${fileId}/download`, {
+            const response = await api.get(`/detailbeli/uploads/${fileId}/download`, {
                 responseType: 'blob'
             });
 
@@ -362,7 +362,7 @@ const UploadFaktur = () => {
     return (
         <MainLayout>
             <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">Upload Data Faktur</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Upload Data Pembelian</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-6 mb-8">
                     <div>
@@ -470,14 +470,53 @@ const UploadFaktur = () => {
                     </div>
                 )}
 
+                {/* File List Section */}
+                <div className="mt-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">Daftar File Pembelian</h3>
+                        <Button
+                            icon={<ReloadOutlined />}
+                            onClick={fetchUploadedFiles}
+                            loading={isFetching}
+                        >
+                            Refresh
+                        </Button>
+                    </div>
+
+                    {isFetching ? (
+                        <div className="text-center py-8">
+                            <Spin size="large" />
+                            <p className="mt-2 text-gray-600">Memuat data file...</p>
+                        </div>
+                    ) : (
+                        <Table
+                            columns={columns}
+                            dataSource={uploadedFiles}
+                            rowKey={(record) => record._id || record.id || record.fileId || Math.random()}
+                            pagination={{ pageSize: 10 }}
+                            scroll={{ x: 800 }}
+                            locale={{
+                                emptyText: (
+                                    <div className="text-center py-8">
+                                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <p className="mt-2 text-gray-600">Belum ada file yang diupload</p>
+                                    </div>
+                                )
+                            }}
+                        />
+                    )}
+                </div>
+
                 <div className="mt-8 p-4 bg-blue-50 rounded-md border border-blue-200">
-                    <h3 className="text-lg font-medium text-blue-800 mb-2">Petunjuk Upload</h3>
+                    <h3 className="text-lg font-medium text-blue-800 mb-2">Petunjuk Upload Data Pembelian</h3>
                     <ul className="list-disc pl-5 text-sm text-blue-700 space-y-1">
                         <li>Pastikan file dalam format Excel (.xlsx atau .xls)</li>
-                        <li>File harus sesuai dengan template yang telah ditentukan</li>
-                        <li>Kolom yang wajib ada: No Faktur, Tanggal Faktur, DPP, PPN, dll</li>
+                        <li>File harus sesuai dengan template data pembelian yang telah ditentukan</li>
+                        <li>Kolom yang wajib ada: Kode Barang, Nama Barang, Jumlah, Harga Beli, Supplier, dll</li>
                         <li><strong>Maksimal ukuran file: 15MB</strong></li>
-                        <li>Proses upload mungkin memakan waktu beberapa saat</li>
+                        <li>Proses upload mungkin memakan waktu beberapa saat tergantung jumlah data</li>
                         <li>Jika terjadi timeout, periksa daftar file - data mungkin telah berhasil diproses</li>
                     </ul>
                 </div>
@@ -486,4 +525,4 @@ const UploadFaktur = () => {
     );
 };
 
-export default UploadFaktur;
+export default UploadBeli;

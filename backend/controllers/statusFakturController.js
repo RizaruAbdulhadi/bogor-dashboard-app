@@ -81,7 +81,7 @@ exports.uploadExcel = async (req, res) => {
         res.json({ success: true, message: 'Upload sukses dan data disimpan' });
     } catch (err) {
         console.error("Upload error:", err);
-        res.status(500).json({ success: false, message: 'Gagal upload', error: err.message });
+        res.status(500).json({ success: false, message: 'Gagal upload-faktur', error: err.message });
     }
 };
 
