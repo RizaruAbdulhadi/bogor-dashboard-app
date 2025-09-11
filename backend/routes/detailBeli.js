@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const {
     uploadFile,
     getUploadedFiles,
@@ -55,5 +56,14 @@ router.get('/uploads', getUploadedFiles);
 router.get('/uploads/:id/download', downloadFile);
 router.delete('/uploads/:id', deleteFile);
 router.get('/uploads/:id/status', getFileStatus);
+
+// Test route untuk debugging
+router.get('/test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'DetailBeli endpoint works!',
+        timestamp: new Date().toISOString()
+    });
+});
 
 module.exports = router;

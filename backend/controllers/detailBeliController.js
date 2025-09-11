@@ -199,17 +199,23 @@ const processExcelFile = async (uploadedFile) => {
 // Get semua uploaded files
 const getUploadedFiles = async (req, res) => {
     try {
+        console.log('🔄 Fetching uploaded files from database...');
+
         const files = await UploadedFile.findAll({
             order: [['created_at', 'DESC']]
         });
 
+        console.log('✅ Found files:', files.length);
+
+        // Kembalikan dalam format yang diharapkan frontend
         res.json({
             success: true,
-            data: files
+            data: files,
+            files: files // Untuk kompatibilitas dengan frontend
         });
 
     } catch (error) {
-        console.error('Error fetching files:', error);
+        console.error('❌ Error fetching files:', error);
         res.status(500).json({
             success: false,
             message: 'Terjadi kesalahan saat mengambil data file',
