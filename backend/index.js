@@ -12,6 +12,7 @@ const kwitansiRoutes = require('./routes/kwitansiRoutes');
 const fakturRoutes = require('./routes/statusFaktur');
 const detailBeliRoutes = require('./routes/detailBeli');
 const agingHDRoutes = require('./routes/agingHDRoutes');
+const monitoringBeliRoutes = require('./routes/monitoringBeli');
 const path = require('path');
 
 require("dotenv").config({ path: "db.env" });
@@ -50,6 +51,7 @@ app.use('/api/kreditur', krediturRoutes);
 app.use('/api/kwitansi', kwitansiRoutes);
 app.use('/api/faktur', fakturRoutes); // ← SUDAH MENCakUP /uploads
 app.use('/api/detailbeli', detailBeliRoutes);
+app.use('/api/monitoring-beli', monitoringBeliRoutes);
 app.use('/api', agingHDRoutes);
 
 app.get("/api/health", (req, res) => {

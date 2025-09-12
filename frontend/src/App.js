@@ -16,6 +16,7 @@ import UploadBeli from "./pages/hutang/upload-faktur-beli/UploadBeli";
 import DataFaktur from "./pages/hutang/data/DataFaktur";
 import AgingHD from "./pages/hutang/aging/AgingHD";
 import KrediturPage from "./pages/master/KrediturPage";
+import MonitoringBeli from "./pages/hutang/monitoring-beli/MonitoringBeli";
 
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -130,6 +131,14 @@ function App() {
                         element={
                             <PrivateRoute>
                                 <KrediturPage />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/monitoring-beli"
+                        element={
+                            <PrivateRoute>
+                                <MonitoringBeli />
                             </PrivateRoute>
                         }
                     />
