@@ -52,17 +52,10 @@ const pickAgingDate = (row) =>
     null;
 
 const pickVendorName = (row) =>
-    row.vendor?.nama ??
-    row.nama_vendor ??
-    row.vendor_name ??
-    row.vendor ??
-    'Unknown';
+    row.nama_vendor || row.vendor_name || row.vendor || 'Unknown';
 
 const pickJenis = (row) =>
-    row.kreditur?.jenis ??
-    row.jenis_kreditur ??
-    row.jenis ??
-    'Lainnya';
+    row.jenis || row.jenis_kreditur || 'Lainnya';
 
 const segTemplate = () => ({ dpp: 0, ppn: 0, total: 0 });
 const ensureJenisBucket = (store, jenis) => {
@@ -188,11 +181,14 @@ const AgingHD = () => {
             const formattedDate = endDate.format('YYYY-MM-DD');
             const response = await api.get(`/aging-hd?end_date=${formattedDate}`);
 
-            if (Array.isArray(response.data)) {
+            if (response.data.success && Array.isArray(response.data.data)) {
+                setAgingData({
+                    data: response.data.data,
+                    grandTotal: response.data.grandTotal
+                });
+            } else if (Array.isArray(response.data)) {
                 const groupedData = groupAgingDataFrontend(response.data, formattedDate);
                 setAgingData(groupedData);
-            } else if (response.data && Array.isArray(response.data.data)) {
-                setAgingData(response.data);
             } else {
                 setAgingData(emptyGrouped());
             }

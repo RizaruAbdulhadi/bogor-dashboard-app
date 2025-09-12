@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getAgingData } = require('../controllers/agingHDController');
+const agingHDController = require('../controllers/agingHDController');
 
-router.get('/aging-hd', getAgingData);
+router.get('/aging-hd', agingHDController.getAgingData);
 
 module.exports = router;
