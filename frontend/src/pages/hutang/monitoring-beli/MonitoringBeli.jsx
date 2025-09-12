@@ -142,23 +142,15 @@ const MonitoringBeli = () => {
                                         "No Faktur",
                                         "No Penerimaan",
                                         "Tgl Penerimaan",
-                                        "No Tukar Faktur",
-                                        "DPP",
-                                        "PPN",
-                                        "Total",
-                                        "AP1",
-                                        "AP2",
-                                        "AP3",
-                                        "Jenis",
+                                        "Tgl Terima Fisik Faktur",
+                                        "Kode Obat",
+                                        "Nama Obat",
+                                        "Jumlah Netto",
                                     ].map((head, idx) => (
                                         <th
                                             key={idx}
                                             scope="col"
-                                            className={`px-6 py-3 text-xs font-medium text-white uppercase tracking-wider ${
-                                                ["DPP", "PPN", "Total"].includes(head)
-                                                    ? "text-right"
-                                                    : "text-left"
-                                            }`}
+                                            className={`px-6 py-3 text-xs font-medium text-white uppercase tracking-wider`}
                                         >
                                             {head}
                                         </th>
@@ -204,28 +196,16 @@ const MonitoringBeli = () => {
                                                 {formatTanggal(item.tanggal_penerimaan)}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">
-                                                {item.nomor_tukar_faktur || "-"}
+                                                {item.tanggal_terima_fisik_faktur || "-"}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                                                {formatAngka(item.dpp)}
+                                                {formatAngka(item.kode_obat)}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                                                {formatAngka(item.ppn)}
+                                                {formatAngka(item.nama_obat)}
                                             </td>
                                             <td className="px-6 py-4 text-sm font-medium text-gray-900 text-right">
-                                                {formatAngka(item.total)}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">
-                                                {item.ap1 || "-"}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">
-                                                {item.ap2 || "-"}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">
-                                                {item.ap3 || "-"}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">
-                                                {item.jenis || "-"}
+                                                {formatAngka(item.jumlah_netto)}
                                             </td>
                                         </tr>
                                     ))
