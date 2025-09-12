@@ -186,7 +186,7 @@ const AgingHD = () => {
 
         try {
             const formattedDate = endDate.format('YYYY-MM-DD');
-            const response = await api.get(`/api/aging-hd?end_date=${formattedDate}`);
+            const response = await api.get(`/aging-hd?end_date=${formattedDate}`);
 
             if (Array.isArray(response.data)) {
                 const groupedData = groupAgingDataFrontend(response.data, formattedDate);
