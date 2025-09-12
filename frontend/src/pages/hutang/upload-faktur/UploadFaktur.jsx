@@ -133,7 +133,7 @@ const UploadFaktur = () => {
 
         try {
             console.log('🚀 Starting file upload-faktur...');
-            const res = await api.post('/faktur/upload', formData, {
+            const res = await api.post('/faktur/uploads', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
