@@ -199,10 +199,10 @@ const MonitoringBeli = () => {
                                                 {item.tanggal_terima_fisik_faktur || "-"}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                                                {formatAngka(item.kode_obat)}
+                                                {item.kode_obat}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                                                {formatAngka(item.nama_obat)}
+                                                {item.nama_obat}
                                             </td>
                                             <td className="px-6 py-4 text-sm font-medium text-gray-900 text-right">
                                                 {formatAngka(item.jumlah_netto)}

@@ -1,6 +1,6 @@
 const DetailBeli = require('../models/DetailBeli');
 
-// Get semua data monitoring beli (data agregat)
+// Get semua data monitoring beli
 const getMonitoringBeli = async (req, res) => {
     try {
         console.log('🔄 Fetching monitoring beli data...');
@@ -17,10 +17,15 @@ const getMonitoringBeli = async (req, res) => {
                 'tanggal_terima_fisik_faktur',
                 'kode_obat',
                 'nama_obat',
-                'jumlah_netto'
+                'jumlah_netto',
+                'satuan',
+                'qty_beli',
+                'harga_satuan'
             ],
             order: [['tanggal_penerimaan', 'DESC']]
         });
+
+        console.log('📊 Raw data from database:', JSON.stringify(data, null, 2));
 
         // Format data untuk frontend
         const formattedData = data.map(item => ({
@@ -34,10 +39,15 @@ const getMonitoringBeli = async (req, res) => {
             tanggal_terima_fisik_faktur: item.tanggal_terima_fisik_faktur || '-',
             kode_obat: item.kode_obat || '-',
             nama_obat: item.nama_obat || '-',
-            jumlah_netto: item.jumlah_netto || 0
+            jumlah_netto: item.jumlah_netto || 0,
+            satuan: item.satuan || '-',
+            qty_beli: item.qty_beli || 0,
+            harga_satuan: item.harga_satuan || 0
         }));
 
         console.log('✅ Monitoring data found:', formattedData.length);
+        console.log('📋 Sample data:', formattedData[0]); // Log sample data pertama
+
         res.json(formattedData);
 
     } catch (error) {
@@ -57,7 +67,9 @@ const getDetailByFaktur = async (req, res) => {
         console.log('🔄 Fetching detail for faktur:', noFaktur);
 
         const details = await DetailBeli.findAll({
-            where: { nomor_penerimaan: noFaktur },
+            where: {
+                nomor_penerimaan: noFaktur
+            },
             attributes: [
                 'kode_obat',
                 'nama_obat',
@@ -71,6 +83,9 @@ const getDetailByFaktur = async (req, res) => {
             ],
             order: [['nama_obat', 'ASC']]
         });
+
+        // Debug: lihat data mentah dari database
+        console.log('📦 Raw detail data:', JSON.stringify(details, null, 2));
 
         // Format data untuk frontend
         const formattedData = details.map(item => ({
@@ -86,6 +101,11 @@ const getDetailByFaktur = async (req, res) => {
         }));
 
         console.log('✅ Detail data found:', formattedData.length);
+
+        if (formattedData.length === 0) {
+            console.log('⚠️  No details found for faktur:', noFaktur);
+        }
+
         res.json(formattedData);
 
     } catch (error) {
