@@ -22,136 +22,119 @@ import PrivateRoute from "./components/PrivateRoute";
 function App() {
     return (
         <AuthProvider>
-            <Routes>
-                {/* Public Route */}
-                <Route path="/" element={<LoginPage />} />
-                <Route path="/login" element={<LoginPage />} />
 
-                {/* Protected Routes */}
-                <Route
-                    path="/dashboard"
-                    element={
-                        <PrivateRoute>
-                            <Dashboard />
-                        </PrivateRoute>
-                    }
-                />
+                <Routes>
+                    {/* Public Route */}
+                    <Route path="/" element={<LoginPage />} />
+                    <Route path="/login" element={<LoginPage />} />
 
-                {/* Master Data Routes */}
-                <Route
-                    path="/master-bank"
-                    element={
-                        <PrivateRoute>
-                            <MasterBank />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/pimpinan"
-                    element={
-                        <PrivateRoute>
-                            <PimpinanPage />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/master-debitur"
-                    element={
-                        <PrivateRoute>
-                            <DebiturPage />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/master-outlet"
-                    element={
-                        <PrivateRoute>
-                            <MasterOutlet />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/master-kreditur"
-                    element={
-                        <PrivateRoute>
-                            <KrediturPage />
-                        </PrivateRoute>
-                    }
-                />
+                    {/* Protected Routes */}
+                    <Route
+                        path="/dashboard"
+                        element={
+                            <PrivateRoute>
+                                <Dashboard />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/master-bank"
+                        element={
+                            <PrivateRoute>
+                                <MasterBank />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/pimpinan"
+                        element={
+                            <PrivateRoute>
+                                <PimpinanPage />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/master-debitur"
+                        element={
+                            <PrivateRoute>
+                                <DebiturPage />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/master-outlet"
+                        element={
+                            <PrivateRoute>
+                                <MasterOutlet />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/buat-kwitansi"
+                        element={
+                            <PrivateRoute>
+                                <CreateKWPiutang />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/lihat"
+                        element={
+                            <PrivateRoute>
+                                <LihatDataPiutang />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/cetak-kwitansi/:id"
+                        element={
+                            <PrivateRoute>
+                                <CetakPiutang />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/hutang/upload-faktur"
+                        element={
+                            <PrivateRoute>
+                                <UploadFaktur />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/hutang/data"
+                        element={
+                            <PrivateRoute>
+                                <DataFaktur />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/hutang/aging"
+                        element={
+                            <PrivateRoute>
+                                <AgingHD />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/hutang/upload-faktur-beli"
+                        element={
+                            <PrivateRoute>
+                                <UploadBeli />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/master-kreditur"
+                        element={
+                            <PrivateRoute>
+                                <KrediturPage />
+                            </PrivateRoute>
+                        }
+                    />
+                </Routes>
 
-                {/* Piutang Routes */}
-                <Route
-                    path="/buat-kwitansi"
-                    element={
-                        <PrivateRoute>
-                            <CreateKWPiutang />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/lihat-piutang"
-                    element={
-                        <PrivateRoute>
-                            <LihatDataPiutang />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/cetak-kwitansi/:id"
-                    element={
-                        <PrivateRoute>
-                            <CetakPiutang />
-                        </PrivateRoute>
-                    }
-                />
-
-                {/* Hutang Routes */}
-                <Route
-                    path="/hutang/upload-faktur"
-                    element={
-                        <PrivateRoute>
-                            <UploadFaktur />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/hutang/upload-faktur-beli"
-                    element={
-                        <PrivateRoute>
-                            <UploadBeli />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/hutang/data-faktur"
-                    element={
-                        <PrivateRoute>
-                            <DataFaktur />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/hutang/aging-hd"
-                    element={
-                        <PrivateRoute>
-                            <AgingHD />
-                        </PrivateRoute>
-                    }
-                />
-
-                {/* Catch all route - 404 Page */}
-                <Route
-                    path="*"
-                    element={
-                        <PrivateRoute>
-                            <div className="p-4">
-                                <h2>404 - Halaman Tidak Ditemukan</h2>
-                                <p>Halaman yang Anda cari tidak exists.</p>
-                            </div>
-                        </PrivateRoute>
-                    }
-                />
-            </Routes>
         </AuthProvider>
     );
 }
