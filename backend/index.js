@@ -11,7 +11,7 @@ const krediturRoutes = require('./routes/krediturRoutes');
 const kwitansiRoutes = require('./routes/kwitansiRoutes');
 const fakturRoutes = require('./routes/statusFaktur');
 const agingHDRoutes = require('./routes/agingHDRoutes');
-const statusFakturRoutes = require('./routes/statusFaktur');
+const detailBeliRoutes = require('./routes/detailBeli');
 
 require("dotenv").config({ path: "db.env" });
 
@@ -19,8 +19,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || "0.0.0.0";
 
-// ✅ Middleware
-app.use(cors({ origin: "*" }));
+// 🔑 Konfigurasi CORS: izinkan localhost:3000 (dev) & 192.168.1.101:8080 (LAN via nginx)
+app.use(cors({
+    origin: [
+        "http://localhost:3000",         // React dev
+        "http://192.168.1.101:8080"      // React build via Nginx
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
 app.use(express.json());
 
 // ✅ Routes
@@ -37,12 +46,16 @@ app.use('/api/kreditur', krediturRoutes);
 app.use('/api/kwitansi', kwitansiRoutes);
 app.use('/api/faktur', fakturRoutes);
 app.use('/api/aging-hd', agingHDRoutes);
-app.use('/api/faktur', statusFakturRoutes);
-app.use('/api/faktur/uploads', statusFakturRoutes);
-app.use('/api/aging-hd', statusFakturRoutes);
+app.use('/api/detailbeli', detailBeliRoutes);
 
 app.get("/api/health", (req, res) => {
     res.json({ status: "OK", message: "Server is running" });
+});
+
+// Error Handler
+app.use((err, req, res, next) => {
+    console.error('❌ Server Error:', err.stack);
+    res.status(500).json({ error: 'Terjadi kesalahan server' });
 });
 
 // ✅ Start server after DB connected
