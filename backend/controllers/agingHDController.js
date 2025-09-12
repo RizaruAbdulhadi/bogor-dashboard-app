@@ -15,23 +15,22 @@ exports.getAgingData = async (req, res) => {
 
         const query = `
       SELECT 
-        k.kode_kreditur, 
-        k.nama_kreditur, 
-        k.jenis,
+        sf.jenis,
         sf.no_faktur,
         sf.tanggal_penerimaan,
         sf.dpp,
         sf.ppn,
         sf.total
-      FROM kreditur k
-      JOIN status_faktur sf ON k.kode_kreditur = sf.kode_vendor
+      FROM status_faktur sf
       WHERE sf.tanggal_penerimaan IS NOT NULL
     `;
         const result = await pool.query(query);
         const rows = result.rows || [];
 
-        // Format data aging
-        const formatted = rows.map(r => {
+        const grouped = {};
+        const grandTotal = { lt30: 0, gt30: 0, gt60: 0, gt90: 0, dpp: 0, ppn: 0, total: 0 };
+
+        rows.forEach(r => {
             const tgl = moment(r.tanggal_penerimaan);
             const selisihHari = endDate.diff(tgl, 'days');
 
@@ -40,9 +39,18 @@ exports.getAgingData = async (req, res) => {
             else if (selisihHari > 60) bucket = 'gt60';
             else if (selisihHari > 30) bucket = 'gt30';
 
-            return {
-                jenis: r.jenis || 'Lainnya',
-                vendor: r.nama_kreditur,
+            const jenis = r.jenis || 'Lainnya';
+
+            if (!grouped[jenis]) {
+                grouped[jenis] = {
+                    jenis,
+                    vendors: [],
+                    subtotal: { lt30: 0, gt30: 0, gt60: 0, gt90: 0, dpp: 0, ppn: 0, total: 0 }
+                };
+            }
+
+            const vendorData = {
+                no_faktur: r.no_faktur,
                 aging: {
                     lt30: bucket === 'lt30' ? Number(r.total) : 0,
                     gt30: bucket === 'gt30' ? Number(r.total) : 0,
@@ -51,37 +59,23 @@ exports.getAgingData = async (req, res) => {
                 },
                 dpp: Number(r.dpp) || 0,
                 ppn: Number(r.ppn) || 0,
-                total: Number(r.total) || 0,
+                total: Number(r.total) || 0
             };
-        });
 
-        // Grouping by jenis
-        const grouped = {};
-        const grandTotal = { lt30: 0, gt30: 0, gt60: 0, gt90: 0, dpp: 0, ppn: 0, total: 0 };
+            grouped[jenis].vendors.push(vendorData);
 
-        formatted.forEach(item => {
-            if (!grouped[item.jenis]) {
-                grouped[item.jenis] = {
-                    jenis: item.jenis,
-                    vendors: [],
-                    subtotal: { lt30: 0, gt30: 0, gt60: 0, gt90: 0, dpp: 0, ppn: 0, total: 0 }
-                };
-            }
-
-            grouped[item.jenis].vendors.push(item);
-
-            // Hitung subtotal
-            Object.keys(item.aging).forEach(key => {
-                grouped[item.jenis].subtotal[key] += item.aging[key];
-                grandTotal[key] += item.aging[key];
+            // subtotal per jenis
+            Object.keys(vendorData.aging).forEach(key => {
+                grouped[jenis].subtotal[key] += vendorData.aging[key];
+                grandTotal[key] += vendorData.aging[key];
             });
-            grouped[item.jenis].subtotal.dpp += item.dpp;
-            grouped[item.jenis].subtotal.ppn += item.ppn;
-            grouped[item.jenis].subtotal.total += item.total;
+            grouped[jenis].subtotal.dpp += vendorData.dpp;
+            grouped[jenis].subtotal.ppn += vendorData.ppn;
+            grouped[jenis].subtotal.total += vendorData.total;
 
-            grandTotal.dpp += item.dpp;
-            grandTotal.ppn += item.ppn;
-            grandTotal.total += item.total;
+            grandTotal.dpp += vendorData.dpp;
+            grandTotal.ppn += vendorData.ppn;
+            grandTotal.total += vendorData.total;
         });
 
         res.json({ data: Object.values(grouped), grandTotal });
