@@ -470,45 +470,6 @@ const UploadBeli = () => {
                     </div>
                 )}
 
-                {/* File List Section */}
-                <div className="mt-8">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Daftar File Pembelian</h3>
-                        <Button
-                            icon={<ReloadOutlined />}
-                            onClick={fetchUploadedFiles}
-                            loading={isFetching}
-                        >
-                            Refresh
-                        </Button>
-                    </div>
-
-                    {isFetching ? (
-                        <div className="text-center py-8">
-                            <Spin size="large" />
-                            <p className="mt-2 text-gray-600">Memuat data file...</p>
-                        </div>
-                    ) : (
-                        <Table
-                            columns={columns}
-                            dataSource={uploadedFiles}
-                            rowKey={(record) => record._id || record.id || record.fileId || Math.random()}
-                            pagination={{ pageSize: 10 }}
-                            scroll={{ x: 800 }}
-                            locale={{
-                                emptyText: (
-                                    <div className="text-center py-8">
-                                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <p className="mt-2 text-gray-600">Belum ada file yang diupload</p>
-                                    </div>
-                                )
-                            }}
-                        />
-                    )}
-                </div>
-
                 <div className="mt-8 p-4 bg-blue-50 rounded-md border border-blue-200">
                     <h3 className="text-lg font-medium text-blue-800 mb-2">Petunjuk Upload Data Pembelian</h3>
                     <ul className="list-disc pl-5 text-sm text-blue-700 space-y-1">
