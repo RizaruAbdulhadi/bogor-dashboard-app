@@ -178,7 +178,7 @@ const MonitoringBeli = () => {
                                                 {indexOfFirstRow + index + 1}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">
-                                                {item.kode_apotek || "-"}
+                                                {item.kode_outlet || "-"}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">
                                                 {item.nama_apotek || "-"}

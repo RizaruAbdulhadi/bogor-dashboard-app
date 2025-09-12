@@ -1,4 +1,3 @@
-// backend/controllers/monitoringBeliController.js
 const DetailBeli = require('../models/DetailBeli');
 
 // Get semua data monitoring beli (data agregat)
@@ -6,40 +5,36 @@ const getMonitoringBeli = async (req, res) => {
     try {
         console.log('🔄 Fetching monitoring beli data...');
 
-        // Query untuk mendapatkan data agregat
+        // Query untuk mendapatkan data monitoring beli
         const data = await DetailBeli.findAll({
             attributes: [
-                'nomor_penerimaan',
+                'id',
                 'kode_outlet',
                 'nama_outlet',
                 'nama_kreditur',
+                'nomor_penerimaan',
                 'tanggal_penerimaan',
-                [DetailBeli.sequelize.fn('SUM', DetailBeli.sequelize.col('jumlah_netto')), 'total'],
-                [DetailBeli.sequelize.fn('COUNT', DetailBeli.sequelize.col('id')), 'item_count']
+                'tanggal_terima_fisik_faktur',
+                'kode_obat',
+                'nama_obat',
+                'jumlah_netto'
             ],
-            group: ['nomor_penerimaan', 'kode_outlet', 'nama_outlet', 'nama_kreditur', 'tanggal_penerimaan'],
             order: [['tanggal_penerimaan', 'DESC']]
         });
 
         // Format data untuk frontend
         const formattedData = data.map(item => ({
-            id: item.nomor_penerimaan + '-' + item.kode_outlet,
-            kode_apotek: item.kode_outlet,
-            nama_apotek: item.nama_outlet,
-            nama_vendor: item.nama_kreditur,
-            no_faktur: item.nomor_penerimaan,
-            nomor_penerimaan: item.nomor_penerimaan,
+            id: item.id,
+            kode_outlet: item.kode_outlet || '-',
+            nama_apotek: item.nama_outlet || '-',
+            nama_vendor: item.nama_kreditur || '-',
+            no_faktur: item.nomor_penerimaan || '-',
+            nomor_penerimaan: item.nomor_penerimaan || '-',
             tanggal_penerimaan: item.tanggal_penerimaan,
-            dpp: item.total * 0.9, // Contoh: DPP = 90% dari total
-            ppn: item.total * 0.1,  // Contoh: PPN = 10% dari total
-            total: item.total,
-            item_count: item.dataValues.item_count,
-            // Field default untuk kompatibilitas frontend
-            nomor_tukar_faktur: '-',
-            ap1: '-',
-            ap2: '-',
-            ap3: '-',
-            jenis: 'REGULER'
+            tanggal_terima_fisik_faktur: item.tanggal_terima_fisik_faktur || '-',
+            kode_obat: item.kode_obat || '-',
+            nama_obat: item.nama_obat || '-',
+            jumlah_netto: item.jumlah_netto || 0
         }));
 
         console.log('✅ Monitoring data found:', formattedData.length);
@@ -79,15 +74,15 @@ const getDetailByFaktur = async (req, res) => {
 
         // Format data untuk frontend
         const formattedData = details.map(item => ({
-            kode_barang: item.kode_obat,
-            nama_barang: item.nama_obat,
-            satuan: item.satuan,
-            qty: item.qty_beli,
-            harga: item.harga_satuan,
-            subtotal: item.jumlah_netto,
-            diskon1: item.diskon_beli_1,
-            diskon2: item.diskon_beli_2,
-            diskon3: item.diskon_beli_3
+            kode_barang: item.kode_obat || '-',
+            nama_barang: item.nama_obat || '-',
+            satuan: item.satuan || '-',
+            qty: item.qty_beli || 0,
+            harga: item.harga_satuan || 0,
+            subtotal: item.jumlah_netto || 0,
+            diskon1: item.diskon_beli_1 || 0,
+            diskon2: item.diskon_beli_2 || 0,
+            diskon3: item.diskon_beli_3 || 0
         }));
 
         console.log('✅ Detail data found:', formattedData.length);
