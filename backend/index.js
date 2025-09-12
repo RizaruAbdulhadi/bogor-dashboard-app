@@ -33,7 +33,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ Routes
+// ✅ Serve static files from uploads directory
+app.use('/api/faktur/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ✅ Routes - HAPUS DUPLIKASI
 app.get("/", (req, res) => {
     res.json({ success: true, message: "Backend API running..." });
 });
@@ -45,7 +48,7 @@ app.use('/api/debitur', debiturRoutes);
 app.use('/api/outlet', outletRoutes);
 app.use('/api/kreditur', krediturRoutes);
 app.use('/api/kwitansi', kwitansiRoutes);
-app.use('/api/faktur', fakturRoutes);
+app.use('/api/faktur', fakturRoutes); // ← SUDAH MENCakUP /uploads
 app.use('/api/aging-hd', agingHDRoutes);
 app.use('/api/detailbeli', detailBeliRoutes);
 
@@ -83,6 +86,9 @@ async function startServer() {
             results.forEach(ip => {
                 console.log(`🌐 Accessible on network: http://${ip}:${PORT}`);
             });
+
+            console.log(`📁 Uploads directory: ${path.join(__dirname, 'uploads')}`);
+            console.log(`📁 Route /api/faktur/uploads sudah aktif`);
         });
     } catch (err) {
         console.error("❌ Startup failed:", err.message);
