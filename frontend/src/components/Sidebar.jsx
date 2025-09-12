@@ -42,7 +42,7 @@ const SideBar = () => {
                         { label: 'Upload Stat Faktur', path: '/hutang/upload-faktur', icon: '📤' },
                         { label: 'Upload Detail Beli', path: '/hutang/upload-faktur-beli', icon: '📥' },
                         { label: 'Hutang Dagang', path: '/hutang/data', icon: '📋' },
-                        { label: 'Monitoring Entri Faktur', path: '/hutang/monitoring', icon: '👀' },
+                        { label: 'Monitoring Entri Faktur', path: '/hutang/monitoring-beli', icon: '👀' },
                         { label: 'Aging HD', path: '/hutang/aging', icon: '📊' }
                     ]}
                 />

@@ -135,7 +135,7 @@ function App() {
                         }
                     />
                     <Route
-                        path="/monitoring-beli"
+                        path="/hutang/monitoring-beli"
                         element={
                             <PrivateRoute>
                                 <MonitoringBeli />
