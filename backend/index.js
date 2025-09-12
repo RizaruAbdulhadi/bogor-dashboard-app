@@ -10,7 +10,6 @@ const outletRoutes = require('./routes/outletRoutes');
 const krediturRoutes = require('./routes/krediturRoutes');
 const kwitansiRoutes = require('./routes/kwitansiRoutes');
 const fakturRoutes = require('./routes/statusFaktur');
-const agingHDRoutes = require('./routes/agingHDRoutes');
 const detailBeliRoutes = require('./routes/detailBeli');
 const path = require('path');
 
@@ -49,7 +48,6 @@ app.use('/api/outlet', outletRoutes);
 app.use('/api/kreditur', krediturRoutes);
 app.use('/api/kwitansi', kwitansiRoutes);
 app.use('/api/faktur', fakturRoutes); // ← SUDAH MENCakUP /uploads
-app.use('/api/aging-hd', agingHDRoutes);
 app.use('/api/detailbeli', detailBeliRoutes);
 
 app.get("/api/health", (req, res) => {
