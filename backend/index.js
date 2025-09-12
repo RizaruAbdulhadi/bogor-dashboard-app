@@ -59,12 +59,14 @@ app.use((err, req, res, next) => {
 });
 
 // ✅ Start server after DB connected
-sequelize.authenticate()
-    .then(() => {
+async function startServer() {
+    try {
+        // Test database connection saja, tanpa sync
+        await sequelize.authenticate();
         console.log("✅ Database connected successfully");
-        return sequelize.sync();
-    })
-    .then(() => {
+        console.log("ℹ️  Skipping database sync (tables already exist)");
+
+        // Start server
         app.listen(PORT, HOST, () => {
             const nets = os.networkInterfaces();
             const results = [];
@@ -81,7 +83,25 @@ sequelize.authenticate()
                 console.log(`🌐 Accessible on network: http://${ip}:${PORT}`);
             });
         });
-    })
-    .catch(err => {
-        console.error("❌ Database connection failed:", err.message);
-    });
+    } catch (err) {
+        console.error("❌ Startup failed:", err.message);
+        console.error("Error details:", err);
+        process.exit(1);
+    }
+}
+
+// Handle graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('\n🛑 Shutting down gracefully...');
+    try {
+        await sequelize.close();
+        console.log('✅ Database connection closed.');
+        process.exit(0);
+    } catch (err) {
+        console.error('❌ Error during shutdown:', err);
+        process.exit(1);
+    }
+});
+
+// Start the application
+startServer();
