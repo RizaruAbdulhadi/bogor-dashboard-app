@@ -11,18 +11,22 @@ import {
     Space,
     Tag,
     Typography,
-    Divider
+    Divider,
+    Popconfirm
 } from 'antd';
 import {
     SearchOutlined,
     PrinterOutlined,
     ReloadOutlined,
-    FilterOutlined
+    FilterOutlined,
+    DownloadOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import MainLayout from '../../layouts/MainLayout';
 import debounce from 'lodash.debounce';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 const { Text } = Typography;
 
@@ -121,7 +125,7 @@ const LihatDataPiutang = () => {
         });
     };
 
-    // === Debounce Pencarian ===
+    // === Debounce Pencarian Penjamin ===
     const debouncedSearch = debounce((value) => {
         setFilters((prev) => ({ ...prev, penjamin: value }));
     }, 500);
@@ -133,6 +137,34 @@ const LihatDataPiutang = () => {
             current: newPagination.current,
             pageSize: newPagination.pageSize
         });
+    };
+
+    // === Download Excel ===
+    const handleDownload = () => {
+        if (!data || data.length === 0) {
+            message.warning('Tidak ada data untuk diunduh');
+            return;
+        }
+
+        // Format data untuk Excel
+        const exportData = data.map((item) => ({
+            'No. Kwitansi': item.nomor_kwitansi,
+            'Nama Penjamin': item.nama_penjamin,
+            'Tanggal Kwitansi': item.tanggal
+                ? dayjs(item.tanggal).format('DD/MM/YYYY')
+                : '',
+            'Tanggal Pelayanan': item.tanggal_pelayanan
+                ? dayjs(item.tanggal_pelayanan).format('DD/MM/YYYY')
+                : '',
+            Nominal: item.nominal
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Piutang');
+        const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([buffer], { type: 'application/octet-stream' });
+        saveAs(blob, 'data_piutang.xlsx');
     };
 
     // === Kolom Tabel ===
@@ -181,14 +213,35 @@ const LihatDataPiutang = () => {
             key: 'action',
             align: 'center',
             render: (_, record) => (
-                <Button
-                    icon={<PrinterOutlined />}
-                    onClick={() => navigate(`/cetak-kwitansi/${record.id}`)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    size="middle"
-                >
-                    Cetak
-                </Button>
+                <Space>
+                    <Button
+                        icon={<PrinterOutlined />}
+                        onClick={() => navigate(`/cetak-kwitansi/${record.id}`)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        size="middle"
+                    >
+                        Cetak
+                    </Button>
+                    <Popconfirm
+                        title="Yakin ingin menghapus kwitansi ini?"
+                        onConfirm={async () => {
+                            try {
+                                await axios.delete(`/api/kwitansi/${record.id}`);
+                                message.success('Kwitansi berhasil dihapus');
+                                fetchData({ ...filters, current: pagination.current });
+                            } catch (error) {
+                                console.error(error);
+                                message.error('Gagal menghapus kwitansi');
+                            }
+                        }}
+                        okText="Ya"
+                        cancelText="Batal"
+                    >
+                        <Button type="primary" danger size="middle">
+                            Delete
+                        </Button>
+                    </Popconfirm>
+                </Space>
             )
         }
     ];
@@ -200,14 +253,22 @@ const LihatDataPiutang = () => {
                 bordered={false}
                 className="shadow-md rounded-lg"
                 extra={
-                    <Button
-                        icon={<ReloadOutlined />}
-                        onClick={handleResetFilters}
-                        disabled={loading}
-                        className="mr-2"
-                    >
-                        Reset
-                    </Button>
+                    <Space>
+                        <Button
+                            icon={<DownloadOutlined />}
+                            onClick={handleDownload}
+                            disabled={loading || !data.length}
+                        >
+                            Download
+                        </Button>
+                        <Button
+                            icon={<ReloadOutlined />}
+                            onClick={handleResetFilters}
+                            disabled={loading}
+                        >
+                            Reset
+                        </Button>
+                    </Space>
                 }
             >
                 {/* === FILTER AREA === */}
