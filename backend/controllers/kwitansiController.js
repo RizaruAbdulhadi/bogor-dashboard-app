@@ -1,25 +1,65 @@
 const Kwitansi = require('../models/Kwitansi');
 const Rekening = require('../models/Rekening');
 const { Op } = require('sequelize');
+const dayjs = require('dayjs');
 
-// ✅ POST /kwitansi/simpan
+// ✅ POST /api/kwitansi/simpan
 exports.simpanKwitansi = async (req, res) => {
     try {
-        const payloadArray = req.body;
+        let data = req.body;
 
-        if (!Array.isArray(payloadArray)) {
-            return res.status(400).json({ error: 'Data harus berupa array' });
+        // Jika bukan array, jadikan array
+        if (!Array.isArray(data)) {
+            data = [data];
         }
 
-        const created = await Kwitansi.bulkCreate(payloadArray);
-        res.status(201).json(created);
+        // Validasi dan format data
+        const validData = data.map((item, index) => {
+            const required = [
+                'nama_penjamin',
+                'tanggal',
+                'tanggal_pelayanan',
+                'nomor_kwitansi',
+                'nominal',
+                'terbilang',
+                'nomor_rekening',
+                'pimpinan',
+                'outlet',
+                'keterangan'
+            ];
+
+            // Cek field wajib
+            const missing = required.filter(f => !item[f]);
+            if (missing.length > 0) {
+                throw new Error(`Baris ${index + 1}: Field wajib kosong → ${missing.join(', ')}`);
+            }
+
+            // Pastikan tanggal valid
+            const tanggal = dayjs(item.tanggal).isValid()
+                ? dayjs(item.tanggal).format('YYYY-MM-DD')
+                : null;
+            const tanggal_pelayanan = dayjs(item.tanggal_pelayanan).isValid()
+                ? dayjs(item.tanggal_pelayanan).format('YYYY-MM-DD')
+                : null;
+
+            return { ...item, tanggal, tanggal_pelayanan };
+        });
+
+        const created = await Kwitansi.bulkCreate(validData, { validate: true });
+        res.status(201).json({
+            message: '✅ Kwitansi berhasil disimpan',
+            data: created
+        });
     } catch (err) {
-        console.error('❌ Gagal menyimpan kwitansi:', err);
-        res.status(500).json({ error: 'Gagal menyimpan kwitansi' });
+        console.error('❌ Gagal menyimpan kwitansi:', err.message);
+        res.status(400).json({
+            error: 'Gagal menyimpan kwitansi',
+            detail: err.message
+        });
     }
 };
 
-// ✅ GET /kwitansi
+// ✅ GET /api/kwitansi
 // Bisa pakai query: ?penjamin=BPJS&dari=2025-10-01&sampai=2025-10-20&filterBy=pelayanan
 exports.getAllKwitansi = async (req, res) => {
     try {
@@ -31,13 +71,10 @@ exports.getAllKwitansi = async (req, res) => {
             where.nama_penjamin = { [Op.iLike]: `%${penjamin}%` };
         }
 
-        // Filter tanggal (bisa tanggal kwitansi atau tanggal pelayanan)
+        // Filter tanggal (kwitansi / pelayanan)
         if (dari && sampai) {
-            if (filterBy === 'pelayanan') {
-                where.tanggal_pelayanan = { [Op.between]: [dari, sampai] };
-            } else {
-                where.tanggal = { [Op.between]: [dari, sampai] };
-            }
+            const field = filterBy === 'pelayanan' ? 'tanggal_pelayanan' : 'tanggal';
+            where[field] = { [Op.between]: [dari, sampai] };
         }
 
         const kwitansi = await Kwitansi.findAll({
@@ -59,7 +96,7 @@ exports.getAllKwitansi = async (req, res) => {
     }
 };
 
-// ✅ GET /kwitansi/:id
+// ✅ GET /api/kwitansi/:id
 exports.getKwitansiById = async (req, res) => {
     try {
         const id = req.params.id;
@@ -84,7 +121,7 @@ exports.getKwitansiById = async (req, res) => {
     }
 };
 
-// ✅ PUT /kwitansi/:id
+// ✅ PUT /api/kwitansi/:id
 exports.updateKwitansi = async (req, res) => {
     try {
         const id = req.params.id;
@@ -95,14 +132,14 @@ exports.updateKwitansi = async (req, res) => {
         }
 
         await kwitansi.update(req.body);
-        res.json(kwitansi);
+        res.json({ message: '✅ Kwitansi berhasil diperbarui', data: kwitansi });
     } catch (err) {
         console.error('❌ Gagal update kwitansi:', err);
         res.status(500).json({ error: 'Gagal mengupdate kwitansi' });
     }
 };
 
-// ✅ DELETE /kwitansi/:id
+// ✅ DELETE /api/kwitansi/:id
 exports.deleteKwitansi = async (req, res) => {
     try {
         const id = req.params.id;
@@ -113,7 +150,7 @@ exports.deleteKwitansi = async (req, res) => {
         }
 
         await kwitansi.destroy();
-        res.json({ message: 'Kwitansi berhasil dihapus' });
+        res.json({ message: '🗑️ Kwitansi berhasil dihapus' });
     } catch (err) {
         console.error('❌ Gagal menghapus kwitansi:', err);
         res.status(500).json({ error: 'Gagal menghapus kwitansi' });
