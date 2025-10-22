@@ -2,7 +2,7 @@ const Kwitansi = require('../models/Kwitansi');
 const Rekening = require('../models/Rekening');
 const { Op } = require('sequelize');
 
-// ✅ POST /kwitansi (simpan banyak kwitansi sekaligus)
+// ✅ POST /kwitansi/simpan
 exports.simpanKwitansi = async (req, res) => {
     try {
         const payloadArray = req.body;
@@ -19,37 +19,47 @@ exports.simpanKwitansi = async (req, res) => {
     }
 };
 
-// ✅ GET /kwitansi (semua data kwitansi)
+// ✅ GET /kwitansi
+// Bisa pakai query: ?penjamin=BPJS&dari=2025-10-01&sampai=2025-10-20&filterBy=pelayanan
 exports.getAllKwitansi = async (req, res) => {
     try {
-        const { dari, sampai, penjamin } = req.query;
+        const { dari, sampai, penjamin, filterBy } = req.query;
         const where = {};
 
+        // Filter penjamin
         if (penjamin) {
             where.nama_penjamin = { [Op.iLike]: `%${penjamin}%` };
         }
+
+        // Filter tanggal (bisa tanggal kwitansi atau tanggal pelayanan)
         if (dari && sampai) {
-            where.tanggal = { [Op.between]: [dari, sampai] };
+            if (filterBy === 'pelayanan') {
+                where.tanggal_pelayanan = { [Op.between]: [dari, sampai] };
+            } else {
+                where.tanggal = { [Op.between]: [dari, sampai] };
+            }
         }
 
         const kwitansi = await Kwitansi.findAll({
             where,
-            include: [{
-                model: Rekening,
-                as: 'rekening',
-                attributes: ['id', 'bank', 'nomor']
-            }]
+            include: [
+                {
+                    model: Rekening,
+                    as: 'rekening',
+                    attributes: ['id', 'bank', 'nomor']
+                }
+            ],
+            order: [['tanggal', 'DESC']]
         });
 
         res.json(kwitansi);
     } catch (error) {
-        console.error('Gagal ambil data kwitansi:', error);
+        console.error('❌ Gagal ambil data kwitansi:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
 
-
-// ✅ GET /kwitansi/:id (detail satu kwitansi)
+// ✅ GET /kwitansi/:id
 exports.getKwitansiById = async (req, res) => {
     try {
         const id = req.params.id;
@@ -74,8 +84,7 @@ exports.getKwitansiById = async (req, res) => {
     }
 };
 
-
-// ✅ PUT /kwitansi/:id (edit/update kwitansi)
+// ✅ PUT /kwitansi/:id
 exports.updateKwitansi = async (req, res) => {
     try {
         const id = req.params.id;
@@ -93,7 +102,7 @@ exports.updateKwitansi = async (req, res) => {
     }
 };
 
-// ✅ DELETE /kwitansi/:id (hapus kwitansi)
+// ✅ DELETE /kwitansi/:id
 exports.deleteKwitansi = async (req, res) => {
     try {
         const id = req.params.id;

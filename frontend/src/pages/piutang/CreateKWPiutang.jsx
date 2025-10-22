@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Form, Input, Button, Select, DatePicker, message, Card, Divider, Space } from 'antd';
 import MainLayout from '../../layouts/MainLayout';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs'; // ✅ tambahkan ini
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -66,13 +67,7 @@ function CreateKWPiutang() {
         return result ? `${result.toUpperCase()} RUPIAH` : "";
     };
 
-    // Format nominal input
-    const formatNominal = (value) => {
-        if (!value) return '';
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    };
-
-    // Auto-update terbilang when nominal changes
+    // Handle nominal input
     const handleNominalChange = (e) => {
         const value = e.target.value.replace(/\./g, '');
         form.setFieldsValue({
@@ -81,25 +76,29 @@ function CreateKWPiutang() {
         });
     };
 
+    // Reset form
     const handleReset = () => {
         form.resetFields();
         message.success('Form telah direset');
     };
 
+    // Submit form
     const handleSubmit = async (values) => {
         setSubmitting(true);
         try {
-            await axios.post('/api/kwitansi/simpan', [{
+            const payload = {
                 ...values,
+                tanggal: values.tanggal ? dayjs(values.tanggal).format('YYYY-MM-DD') : null,
+                tanggal_pelayanan: values.tanggal_pelayanan ? dayjs(values.tanggal_pelayanan).format('YYYY-MM-DD') : null,
                 terbilang: generateTerbilang(values.nominal)
-            }]);
+            };
+
+            await axios.post('/api/kwitansi/simpan', [payload]);
 
             message.success({
                 content: '✅ Kwitansi berhasil disimpan!',
                 duration: 3,
-                style: {
-                    marginTop: '50px'
-                }
+                style: { marginTop: '50px' }
             });
             form.resetFields();
         } catch (err) {
@@ -107,9 +106,7 @@ function CreateKWPiutang() {
             message.error({
                 content: '❌ Gagal menyimpan kwitansi',
                 duration: 3,
-                style: {
-                    marginTop: '50px'
-                }
+                style: { marginTop: '50px' }
             });
         } finally {
             setSubmitting(false);
@@ -123,30 +120,20 @@ function CreateKWPiutang() {
                     title={<span className="text-xl font-semibold text-gray-800">Form Entri Kwitansi Piutang</span>}
                     bordered={false}
                     className="shadow-lg rounded-lg"
-                    headStyle={{ borderBottom: '1px solid #e8e8e8' }}
                     loading={loading}
                     extra={
-                        <Button
-                            icon={<ReloadOutlined />}
-                            onClick={handleReset}
-                            disabled={submitting}
-                        >
+                        <Button icon={<ReloadOutlined />} onClick={handleReset} disabled={submitting}>
                             Reset Form
                         </Button>
                     }
                 >
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        onFinish={handleSubmit}
-                        className="space-y-0"
-                    >
+                    <Form form={form} layout="vertical" onFinish={handleSubmit}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Column 1 */}
+                            {/* Kolom Kiri */}
                             <div className="space-y-4">
                                 <Form.Item
                                     name="nama_penjamin"
-                                    label={<span className="font-medium text-gray-700">Nama Penjamin</span>}
+                                    label="Nama Penjamin"
                                     rules={[{ required: true, message: 'Harap pilih penjamin!' }]}
                                 >
                                     <Select
@@ -154,10 +141,9 @@ function CreateKWPiutang() {
                                         showSearch
                                         optionFilterProp="children"
                                         filterOption={(input, option) =>
-                                            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                            option.children.toLowerCase().includes(input.toLowerCase())
                                         }
                                         size="large"
-                                        className="w-full"
                                     >
                                         {debiturList.map(p => (
                                             <Option key={p.id} value={p.nama_debitur}>{p.nama_debitur}</Option>
@@ -167,30 +153,32 @@ function CreateKWPiutang() {
 
                                 <Form.Item
                                     name="tanggal"
-                                    label={<span className="font-medium text-gray-700">Tanggal</span>}
-                                    rules={[{ required: true, message: 'Harap pilih tanggal!' }]}
+                                    label="Tanggal Kwitansi"
+                                    rules={[{ required: true, message: 'Harap pilih tanggal kwitansi!' }]}
                                 >
-                                    <DatePicker
-                                        className="w-full"
-                                        format="DD/MM/YYYY"
-                                        size="large"
-                                    />
+                                    <DatePicker className="w-full" format="DD/MM/YYYY" size="large" />
+                                </Form.Item>
+
+                                {/* ✅ Tambahan field baru */}
+                                <Form.Item
+                                    name="tanggal_pelayanan"
+                                    label="Tanggal Pelayanan"
+                                    rules={[{ required: true, message: 'Harap pilih tanggal pelayanan!' }]}
+                                >
+                                    <DatePicker className="w-full" format="DD/MM/YYYY" size="large" />
                                 </Form.Item>
 
                                 <Form.Item
                                     name="nomor_kwitansi"
-                                    label={<span className="font-medium text-gray-700">Nomor Kwitansi</span>}
+                                    label="Nomor Kwitansi"
                                     rules={[{ required: true, message: 'Harap isi nomor kwitansi!' }]}
                                 >
-                                    <Input
-                                        placeholder="C1xxxxxxxx"
-                                        size="large"
-                                    />
+                                    <Input placeholder="C1xxxxxxxx" size="large" />
                                 </Form.Item>
 
                                 <Form.Item
                                     name="nominal"
-                                    label={<span className="font-medium text-gray-700">Nominal (Rp)</span>}
+                                    label="Nominal (Rp)"
                                     rules={[{ required: true, message: 'Harap isi nominal!' }]}
                                 >
                                     <Input
@@ -198,33 +186,22 @@ function CreateKWPiutang() {
                                         size="large"
                                         onChange={handleNominalChange}
                                         addonBefore="Rp"
-                                        className="font-medium"
                                     />
                                 </Form.Item>
                             </div>
 
-                            {/* Column 2 */}
+                            {/* Kolom Kanan */}
                             <div className="space-y-4">
-                                <Form.Item
-                                    name="terbilang"
-                                    label={<span className="font-medium text-gray-700">Terbilang</span>}
-                                >
-                                    <Input
-                                        readOnly
-                                        className="italic text-gray-600 bg-gray-50 font-medium"
-                                        size="large"
-                                    />
+                                <Form.Item name="terbilang" label="Terbilang">
+                                    <Input readOnly className="italic text-gray-600 bg-gray-50 font-medium" size="large" />
                                 </Form.Item>
 
                                 <Form.Item
                                     name="nomor_rekening"
-                                    label={<span className="font-medium text-gray-700">Nomor Rekening</span>}
+                                    label="Nomor Rekening"
                                     rules={[{ required: true, message: 'Harap pilih rekening!' }]}
                                 >
-                                    <Select
-                                        placeholder="Pilih Rekening"
-                                        size="large"
-                                    >
+                                    <Select placeholder="Pilih Rekening" size="large">
                                         {rekeningList.map(r => (
                                             <Option key={r.id} value={r.nomor}>{r.bank} - {r.nomor}</Option>
                                         ))}
@@ -233,13 +210,10 @@ function CreateKWPiutang() {
 
                                 <Form.Item
                                     name="pimpinan"
-                                    label={<span className="font-medium text-gray-700">Pimpinan</span>}
+                                    label="Pimpinan"
                                     rules={[{ required: true, message: 'Harap pilih pimpinan!' }]}
                                 >
-                                    <Select
-                                        placeholder="Pilih Pimpinan"
-                                        size="large"
-                                    >
+                                    <Select placeholder="Pilih Pimpinan" size="large">
                                         {pimpinanList.map(p => (
                                             <Option key={p.id} value={p.nama}>{p.nama}</Option>
                                         ))}
@@ -248,13 +222,10 @@ function CreateKWPiutang() {
 
                                 <Form.Item
                                     name="outlet"
-                                    label={<span className="font-medium text-gray-700">Outlet</span>}
+                                    label="Outlet"
                                     rules={[{ required: true, message: 'Harap pilih outlet!' }]}
                                 >
-                                    <Select
-                                        placeholder="Pilih Outlet"
-                                        size="large"
-                                    >
+                                    <Select placeholder="Pilih Outlet" size="large">
                                         {outletList.map(o => (
                                             <Option key={o.id} value={o.nama_outlet}>{o.nama_outlet}</Option>
                                         ))}
@@ -265,14 +236,10 @@ function CreateKWPiutang() {
 
                         <Form.Item
                             name="keterangan"
-                            label={<span className="font-medium text-gray-700">Keterangan</span>}
+                            label="Keterangan"
                             rules={[{ required: true, message: 'Harap isi keterangan!' }]}
                         >
-                            <TextArea
-                                rows={3}
-                                size="large"
-                                placeholder="Masukkan keterangan tambahan..."
-                            />
+                            <TextArea rows={3} size="large" placeholder="Masukkan keterangan tambahan..." />
                         </Form.Item>
 
                         <Divider />
@@ -289,12 +256,7 @@ function CreateKWPiutang() {
                                 >
                                     Simpan Kwitansi
                                 </Button>
-                                <Button
-                                    onClick={handleReset}
-                                    icon={<ReloadOutlined />}
-                                    size="large"
-                                    disabled={submitting}
-                                >
+                                <Button onClick={handleReset} icon={<ReloadOutlined />} size="large" disabled={submitting}>
                                     Reset
                                 </Button>
                             </Space>

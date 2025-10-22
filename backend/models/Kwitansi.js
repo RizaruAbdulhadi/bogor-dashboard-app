@@ -44,6 +44,10 @@ const Kwitansi = sequelize.define('Kwitansi', {
         type: DataTypes.TEXT,
         allowNull: false,
     },
+    tanggal_pelayanan: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+    },
 }, {
     tableName: 'kwitansi',
     timestamps: true,
