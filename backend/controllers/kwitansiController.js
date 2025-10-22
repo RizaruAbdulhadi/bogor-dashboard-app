@@ -71,10 +71,12 @@ exports.getAllKwitansi = async (req, res) => {
             where.nama_penjamin = { [Op.iLike]: `%${penjamin}%` };
         }
 
-        // Filter tanggal (kwitansi / pelayanan)
-        if (dari && sampai) {
+        // Filter tanggal opsional
+        if (dari || sampai) {
             const field = filterBy === 'pelayanan' ? 'tanggal_pelayanan' : 'tanggal';
-            where[field] = { [Op.between]: [dari, sampai] };
+            where[field] = {};
+            if (dari) where[field][Op.gte] = dari;
+            if (sampai) where[field][Op.lte] = sampai;
         }
 
         const kwitansi = await Kwitansi.findAll({
@@ -95,6 +97,7 @@ exports.getAllKwitansi = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
 
 // ✅ GET /api/kwitansi/:id
 exports.getKwitansiById = async (req, res) => {

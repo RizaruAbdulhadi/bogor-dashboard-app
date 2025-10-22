@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Table,
@@ -49,28 +49,20 @@ const LihatDataPiutang = () => {
 
     const navigate = useNavigate();
 
-    // === Fetch Data dari Backend ===
+    // === Ambil data dari backend ===
     const fetchData = async (params = {}) => {
         setLoading(true);
         try {
             const queryParams = {
-                ...params,
-                dari_kwitansi: params.dari_kwitansi
-                    ? dayjs(params.dari_kwitansi).format('YYYY-MM-DD')
-                    : '',
-                sampai_kwitansi: params.sampai_kwitansi
-                    ? dayjs(params.sampai_kwitansi).format('YYYY-MM-DD')
-                    : '',
-                dari_pelayanan: params.dari_pelayanan
-                    ? dayjs(params.dari_pelayanan).format('YYYY-MM-DD')
-                    : '',
-                sampai_pelayanan: params.sampai_pelayanan
-                    ? dayjs(params.sampai_pelayanan).format('YYYY-MM-DD')
-                    : '',
                 page: params.current || pagination.current,
-                limit: params.pageSize || pagination.pageSize,
-                penjamin: params.penjamin || ''
+                limit: params.pageSize || pagination.pageSize
             };
+
+            if (params.penjamin) queryParams.penjamin = params.penjamin;
+            if (params.dari_kwitansi) queryParams.dari_kwitansi = dayjs(params.dari_kwitansi).format('YYYY-MM-DD');
+            if (params.sampai_kwitansi) queryParams.sampai_kwitansi = dayjs(params.sampai_kwitansi).format('YYYY-MM-DD');
+            if (params.dari_pelayanan) queryParams.dari_pelayanan = dayjs(params.dari_pelayanan).format('YYYY-MM-DD');
+            if (params.sampai_pelayanan) queryParams.sampai_pelayanan = dayjs(params.sampai_pelayanan).format('YYYY-MM-DD');
 
             const response = await axios.get('/api/kwitansi', { params: queryParams });
 
@@ -90,7 +82,7 @@ const LihatDataPiutang = () => {
     };
 
     useEffect(() => {
-        fetchData({ ...filters, current: 1 });
+        fetchData();
     }, []);
 
     // === Tombol Cari ===
@@ -108,33 +100,25 @@ const LihatDataPiutang = () => {
 
     // === Reset Filter ===
     const handleResetFilters = () => {
-        const resetFilters = {
+        setFilters({
             dari_kwitansi: null,
             sampai_kwitansi: null,
             dari_pelayanan: null,
             sampai_pelayanan: null,
             penjamin: ''
-        };
-        setFilters(resetFilters);
+        });
         setIsFiltered(false);
-        fetchData({ ...resetFilters, current: 1 });
+        fetchData({ current: 1 });
     };
 
-    // === Debounced fetchData untuk Penjamin ===
-    const debouncedFetch = useCallback(
-        debounce((value) => {
-            fetchData({ ...filters, penjamin: value, current: 1 });
-        }, 500),
-        [filters]
-    );
+    // === Debounce pencarian penjamin ===
+    const debouncedSearch = debounce((value) => {
+        setFilters((prev) => ({ ...prev, penjamin: value }));
+    }, 500);
 
     // === Pagination ===
     const handleTableChange = (newPagination) => {
-        fetchData({
-            ...filters,
-            current: newPagination.current,
-            pageSize: newPagination.pageSize
-        });
+        fetchData({ ...filters, current: newPagination.current, pageSize: newPagination.pageSize });
     };
 
     // === Download Excel ===
@@ -147,12 +131,8 @@ const LihatDataPiutang = () => {
         const exportData = data.map((item) => ({
             'No. Kwitansi': item.nomor_kwitansi,
             'Nama Penjamin': item.nama_penjamin,
-            'Tanggal Kwitansi': item.tanggal
-                ? dayjs(item.tanggal).format('DD/MM/YYYY')
-                : '',
-            'Tanggal Pelayanan': item.tanggal_pelayanan
-                ? dayjs(item.tanggal_pelayanan).format('DD/MM/YYYY')
-                : '',
+            'Tanggal Kwitansi': item.tanggal ? dayjs(item.tanggal).format('DD/MM/YYYY') : '',
+            'Tanggal Pelayanan': item.tanggal_pelayanan ? dayjs(item.tanggal_pelayanan).format('DD/MM/YYYY') : '',
             Nominal: item.nominal
         }));
 
@@ -197,11 +177,7 @@ const LihatDataPiutang = () => {
             align: 'right',
             render: (text) => (
                 <Tag color="blue" style={{ fontSize: '13px' }}>
-                    {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0
-                    }).format(text)}
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(text)}
                 </Tag>
             )
         },
@@ -251,18 +227,10 @@ const LihatDataPiutang = () => {
                 className="shadow-md rounded-lg"
                 extra={
                     <Space>
-                        <Button
-                            icon={<DownloadOutlined />}
-                            onClick={handleDownload}
-                            disabled={loading || !data.length}
-                        >
+                        <Button icon={<DownloadOutlined />} onClick={handleDownload} disabled={loading || !data.length}>
                             Download
                         </Button>
-                        <Button
-                            icon={<ReloadOutlined />}
-                            onClick={handleResetFilters}
-                            disabled={loading}
-                        >
+                        <Button icon={<ReloadOutlined />} onClick={handleResetFilters} disabled={loading}>
                             Reset
                         </Button>
                     </Space>
@@ -276,19 +244,15 @@ const LihatDataPiutang = () => {
                             <DatePicker
                                 placeholder="Dari"
                                 format="DD/MM/YYYY"
-                                value={filters.dari_kwitansi}
-                                onChange={(date) =>
-                                    setFilters((prev) => ({ ...prev, dari_kwitansi: date }))
-                                }
+                                value={filters.dari_kwitansi ? dayjs(filters.dari_kwitansi) : null}
+                                onChange={(date) => setFilters((prev) => ({ ...prev, dari_kwitansi: date }))}
                                 suffixIcon={<FilterOutlined />}
                             />
                             <DatePicker
                                 placeholder="Sampai"
                                 format="DD/MM/YYYY"
-                                value={filters.sampai_kwitansi}
-                                onChange={(date) =>
-                                    setFilters((prev) => ({ ...prev, sampai_kwitansi: date }))
-                                }
+                                value={filters.sampai_kwitansi ? dayjs(filters.sampai_kwitansi) : null}
+                                onChange={(date) => setFilters((prev) => ({ ...prev, sampai_kwitansi: date }))}
                                 suffixIcon={<FilterOutlined />}
                             />
                         </Space>
@@ -302,19 +266,15 @@ const LihatDataPiutang = () => {
                             <DatePicker
                                 placeholder="Dari"
                                 format="DD/MM/YYYY"
-                                value={filters.dari_pelayanan}
-                                onChange={(date) =>
-                                    setFilters((prev) => ({ ...prev, dari_pelayanan: date }))
-                                }
+                                value={filters.dari_pelayanan ? dayjs(filters.dari_pelayanan) : null}
+                                onChange={(date) => setFilters((prev) => ({ ...prev, dari_pelayanan: date }))}
                                 suffixIcon={<FilterOutlined />}
                             />
                             <DatePicker
                                 placeholder="Sampai"
                                 format="DD/MM/YYYY"
-                                value={filters.sampai_pelayanan}
-                                onChange={(date) =>
-                                    setFilters((prev) => ({ ...prev, sampai_pelayanan: date }))
-                                }
+                                value={filters.sampai_pelayanan ? dayjs(filters.sampai_pelayanan) : null}
+                                onChange={(date) => setFilters((prev) => ({ ...prev, sampai_pelayanan: date }))}
                                 suffixIcon={<FilterOutlined />}
                             />
                         </Space>
@@ -325,19 +285,13 @@ const LihatDataPiutang = () => {
                     <Space size="middle" wrap>
                         <Input
                             placeholder="Cari Penjamin..."
-                            defaultValue={filters.penjamin}
-                            onChange={(e) => debouncedFetch(e.target.value)}
+                            value={filters.penjamin}
+                            onChange={(e) => debouncedSearch(e.target.value)}
                             allowClear
                             suffix={<SearchOutlined />}
                             className="w-full md:w-64"
                         />
-                        <Button
-                            type="primary"
-                            icon={<SearchOutlined />}
-                            onClick={handleSearch}
-                            loading={loading}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                        >
+                        <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading} className="bg-green-600 hover:bg-green-700 text-white">
                             Cari
                         </Button>
                     </Space>
@@ -368,9 +322,7 @@ const LihatDataPiutang = () => {
                         locale={{
                             emptyText: (
                                 <div className="py-8">
-                                    <Text type="secondary">
-                                        {loading ? 'Memuat data...' : 'Tidak ada data ditemukan'}
-                                    </Text>
+                                    <Text type="secondary">{loading ? 'Memuat data...' : 'Tidak ada data ditemukan'}</Text>
                                 </div>
                             )
                         }}
