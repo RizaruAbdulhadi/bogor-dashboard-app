@@ -8,5 +8,6 @@ router.get('/', kwitansiController.getAllKwitansi);
 router.get('/:id', kwitansiController.getKwitansiById);
 router.put('/:id', kwitansiController.updateKwitansi);
 router.delete('/:id', kwitansiController.deleteKwitansi);
+router.get('/filter/pelayanan', kwitansiController.getAllKwitansi);
 
 module.exports = router;

@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, DatePicker, Input, message, Spin, Card, Space, Tag, Typography } from 'antd';
-import { SearchOutlined, PrinterOutlined, ReloadOutlined, FilterOutlined } from '@ant-design/icons';
+import {
+    Table,
+    Button,
+    DatePicker,
+    Input,
+    message,
+    Spin,
+    Card,
+    Space,
+    Tag,
+    Typography,
+    Divider
+} from 'antd';
+import {
+    SearchOutlined,
+    PrinterOutlined,
+    ReloadOutlined,
+    FilterOutlined
+} from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import MainLayout from '../../layouts/MainLayout';
@@ -18,21 +35,34 @@ const LihatDataPiutang = () => {
         total: 0
     });
     const [filters, setFilters] = useState({
-        dari: '',
-        sampai: '',
+        dari_kwitansi: '',
+        sampai_kwitansi: '',
+        dari_pelayanan: '',
+        sampai_pelayanan: '',
         penjamin: ''
     });
     const [isFiltered, setIsFiltered] = useState(false);
 
     const navigate = useNavigate();
 
+    // === Ambil data dari backend ===
     const fetchData = async (params = {}) => {
         setLoading(true);
         try {
             const queryParams = {
                 ...params,
-                dari: params.dari ? dayjs(params.dari).format('YYYY-MM-DD') : '',
-                sampai: params.sampai ? dayjs(params.sampai).format('YYYY-MM-DD') : '',
+                dari_kwitansi: params.dari_kwitansi
+                    ? dayjs(params.dari_kwitansi).format('YYYY-MM-DD')
+                    : '',
+                sampai_kwitansi: params.sampai_kwitansi
+                    ? dayjs(params.sampai_kwitansi).format('YYYY-MM-DD')
+                    : '',
+                dari_pelayanan: params.dari_pelayanan
+                    ? dayjs(params.dari_pelayanan).format('YYYY-MM-DD')
+                    : '',
+                sampai_pelayanan: params.sampai_pelayanan
+                    ? dayjs(params.sampai_pelayanan).format('YYYY-MM-DD')
+                    : '',
                 page: params.current || pagination.current,
                 limit: params.pageSize || pagination.pageSize
             };
@@ -41,7 +71,7 @@ const LihatDataPiutang = () => {
                 params: queryParams
             });
 
-            setData(response.data.data || response.data); // Handle both formats
+            setData(response.data.data || response.data);
             setPagination({
                 current: queryParams.page,
                 pageSize: queryParams.limit,
@@ -60,8 +90,15 @@ const LihatDataPiutang = () => {
         fetchData();
     }, []);
 
+    // === Tombol Cari ===
     const handleSearch = () => {
-        const hasFilters = filters.dari || filters.sampai || filters.penjamin;
+        const hasFilters =
+            filters.dari_kwitansi ||
+            filters.sampai_kwitansi ||
+            filters.dari_pelayanan ||
+            filters.sampai_pelayanan ||
+            filters.penjamin;
+
         setIsFiltered(hasFilters);
         fetchData({
             ...filters,
@@ -69,25 +106,27 @@ const LihatDataPiutang = () => {
         });
     };
 
+    // === Reset Filter ===
     const handleResetFilters = () => {
         setFilters({
-            dari: '',
-            sampai: '',
+            dari_kwitansi: '',
+            sampai_kwitansi: '',
+            dari_pelayanan: '',
+            sampai_pelayanan: '',
             penjamin: ''
         });
         setIsFiltered(false);
         fetchData({
-            dari: '',
-            sampai: '',
-            penjamin: '',
             current: 1
         });
     };
 
+    // === Debounce Pencarian ===
     const debouncedSearch = debounce((value) => {
         setFilters((prev) => ({ ...prev, penjamin: value }));
     }, 500);
 
+    // === Pagination ===
     const handleTableChange = (newPagination) => {
         fetchData({
             ...filters,
@@ -96,6 +135,7 @@ const LihatDataPiutang = () => {
         });
     };
 
+    // === Kolom Tabel ===
     const columns = [
         {
             title: 'No. Kwitansi',
@@ -110,16 +150,22 @@ const LihatDataPiutang = () => {
             render: (text) => <Text>{text}</Text>
         },
         {
-            title: 'Tanggal',
+            title: 'Tanggal Kwitansi',
             dataIndex: 'tanggal',
             key: 'tanggal',
-            render: (text) => dayjs(text).format('DD/MM/YYYY'),
-            sorter: (a, b) => dayjs(a.tanggal).unix() - dayjs(b.tanggal).unix()
+            render: (text) => (text ? dayjs(text).format('DD/MM/YYYY') : '-')
+        },
+        {
+            title: 'Tanggal Pelayanan',
+            dataIndex: 'tanggal_pelayanan',
+            key: 'tanggal_pelayanan',
+            render: (text) => (text ? dayjs(text).format('DD/MM/YYYY') : '-')
         },
         {
             title: 'Nominal',
             dataIndex: 'nominal',
             key: 'nominal',
+            align: 'right',
             render: (text) => (
                 <Tag color="blue" style={{ fontSize: '13px' }}>
                     {new Intl.NumberFormat('id-ID', {
@@ -128,8 +174,7 @@ const LihatDataPiutang = () => {
                         minimumFractionDigits: 0
                     }).format(text)}
                 </Tag>
-            ),
-            align: 'right'
+            )
         },
         {
             title: 'Aksi',
@@ -165,31 +210,96 @@ const LihatDataPiutang = () => {
                     </Button>
                 }
             >
-                <div className="mb-6">
+                {/* === FILTER AREA === */}
+                <div className="mb-6 space-y-4">
+                    <div>
+                        <Text strong>Tanggal Kwitansi:</Text>
+                        <Space size="middle" wrap className="ml-3">
+                            <DatePicker
+                                placeholder="Dari"
+                                format="DD/MM/YYYY"
+                                value={
+                                    filters.dari_kwitansi
+                                        ? dayjs(filters.dari_kwitansi)
+                                        : null
+                                }
+                                onChange={(date) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        dari_kwitansi: date
+                                    }))
+                                }
+                                suffixIcon={<FilterOutlined />}
+                            />
+                            <DatePicker
+                                placeholder="Sampai"
+                                format="DD/MM/YYYY"
+                                value={
+                                    filters.sampai_kwitansi
+                                        ? dayjs(filters.sampai_kwitansi)
+                                        : null
+                                }
+                                onChange={(date) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        sampai_kwitansi: date
+                                    }))
+                                }
+                                suffixIcon={<FilterOutlined />}
+                            />
+                        </Space>
+                    </div>
+
+                    <Divider style={{ margin: '8px 0' }} />
+
+                    <div>
+                        <Text strong>Tanggal Pelayanan:</Text>
+                        <Space size="middle" wrap className="ml-3">
+                            <DatePicker
+                                placeholder="Dari"
+                                format="DD/MM/YYYY"
+                                value={
+                                    filters.dari_pelayanan
+                                        ? dayjs(filters.dari_pelayanan)
+                                        : null
+                                }
+                                onChange={(date) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        dari_pelayanan: date
+                                    }))
+                                }
+                                suffixIcon={<FilterOutlined />}
+                            />
+                            <DatePicker
+                                placeholder="Sampai"
+                                format="DD/MM/YYYY"
+                                value={
+                                    filters.sampai_pelayanan
+                                        ? dayjs(filters.sampai_pelayanan)
+                                        : null
+                                }
+                                onChange={(date) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        sampai_pelayanan: date
+                                    }))
+                                }
+                                suffixIcon={<FilterOutlined />}
+                            />
+                        </Space>
+                    </div>
+
+                    <Divider style={{ margin: '8px 0' }} />
+
                     <Space size="middle" wrap>
-                        <DatePicker
-                            placeholder="Dari Tanggal"
-                            format="DD/MM/YYYY"
-                            value={filters.dari ? dayjs(filters.dari) : null}
-                            onChange={(date) => setFilters((prev) => ({ ...prev, dari: date }))}
-                            className="w-full md:w-48"
-                            suffixIcon={<FilterOutlined />}
-                        />
-                        <DatePicker
-                            placeholder="Sampai Tanggal"
-                            format="DD/MM/YYYY"
-                            value={filters.sampai ? dayjs(filters.sampai) : null}
-                            onChange={(date) => setFilters((prev) => ({ ...prev, sampai: date }))}
-                            className="w-full md:w-48"
-                            suffixIcon={<FilterOutlined />}
-                        />
                         <Input
                             placeholder="Cari Penjamin..."
                             value={filters.penjamin}
                             onChange={(e) => debouncedSearch(e.target.value)}
-                            className="w-full md:w-64"
                             allowClear
                             suffix={<SearchOutlined />}
+                            className="w-full md:w-64"
                         />
                         <Button
                             type="primary"
@@ -211,6 +321,7 @@ const LihatDataPiutang = () => {
                     )}
                 </div>
 
+                {/* === TABLE === */}
                 <Spin spinning={loading} tip="Memuat data...">
                     <Table
                         columns={columns}
@@ -221,15 +332,16 @@ const LihatDataPiutang = () => {
                             showSizeChanger: true,
                             showQuickJumper: true,
                             pageSizeOptions: ['10', '20', '50', '100'],
-                            showTotal: (total) => `Total ${total} data`,
-                            className: 'mt-4'
+                            showTotal: (total) => `Total ${total} data`
                         }}
                         onChange={handleTableChange}
                         locale={{
                             emptyText: (
                                 <div className="py-8">
                                     <Text type="secondary">
-                                        {loading ? 'Memuat data...' : 'Tidak ada data ditemukan'}
+                                        {loading
+                                            ? 'Memuat data...'
+                                            : 'Tidak ada data ditemukan'}
                                     </Text>
                                 </div>
                             )
