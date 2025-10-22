@@ -93,7 +93,7 @@ function CreateKWPiutang() {
                 terbilang: generateTerbilang(values.nominal)
             };
 
-            await axios.post('/api/kwitansi/simpan', [payload]);
+            await axios.post('/api/kwitansi/simpan', payload);
 
             message.success({
                 content: '✅ Kwitansi berhasil disimpan!',
